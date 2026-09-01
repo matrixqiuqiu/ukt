@@ -105,8 +105,11 @@ const statusClass = computed(() => {
 });
 
 const displayNominal = computed(() => {
+    if (props.beasiswa && Number(props.pembayaran.jumlah_bayar) === 0 && Number(props.beasiswa.diskon) > 0) {
+        return Number(props.beasiswa.diskon);
+    }
     if (props.beasiswa && props.beasiswa.tipe === 'full' && Number(props.pembayaran.jumlah_bayar) === 0) {
-        return props.pembayaran.tagihan?.nominal ?? props.beasiswa.diskon ?? 0;
+        return Number(props.beasiswa.diskon) || props.pembayaran.tagihan?.nominal || 0;
     }
     return props.pembayaran.jumlah_bayar;
 });
