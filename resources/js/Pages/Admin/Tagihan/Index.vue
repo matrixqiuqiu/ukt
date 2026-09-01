@@ -98,7 +98,7 @@ const statusBadge = (status) => {
                                         <th @click="handleSort('tahun_akademik')" style="cursor:pointer;user-select:none;">Tahun Akademik <i class="fas" :class="sortIcon('tahun_akademik')" style="font-size:0.65rem;opacity:0.5;margin-left:0.25rem;"></i></th>
                                         <th @click="handleSort('nominal')" style="cursor:pointer;user-select:none;">Nominal <i class="fas" :class="sortIcon('nominal')" style="font-size:0.65rem;opacity:0.5;margin-left:0.25rem;"></i></th>
                                         <th @click="handleSort('status')" style="cursor:pointer;user-select:none;">Status <i class="fas" :class="sortIcon('status')" style="font-size:0.65rem;opacity:0.5;margin-left:0.25rem;"></i></th>
-                                        <th style="width:80px">Aksi</th>
+                                        <th style="width:130px">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
