@@ -102,7 +102,7 @@ const statusBadge = (status) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="(t, i) in tagihans.data" :key="t.id">
+                                    <tr v-for="(t, i) in tagihans.data" :key="t.id" :class="{'row-lunas': t.status==='sudah_dibayar'}">
                                         <td>{{ tagihans.from + i }}</td>
                                         <td style="font-weight:600;font-family:monospace;">{{ t.mahasiswa?.nim }}</td>
                                         <td>{{ t.mahasiswa?.nama_lengkap }}</td>
@@ -167,4 +167,6 @@ const statusBadge = (status) => {
 .page-link:hover { background: var(--gray-50); }
 .page-item.active .page-link { background: var(--primary); color: white; border-color: var(--primary); }
 .page-item.disabled .page-link { opacity: 0.5; cursor: not-allowed; }
+.row-lunas { background: #f0fdf4 !important; }
+.row-lunas td { border-color: #bbf7d0 !important; }
 </style>
