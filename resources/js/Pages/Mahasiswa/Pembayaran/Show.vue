@@ -104,6 +104,12 @@ const statusClass = computed(() => {
     return 'status-pending';
 });
 
+const displayNominal = computed(() => {
+    if (props.beasiswa && props.beasiswa.tipe === 'full' && Number(props.pembayaran.jumlah_bayar) === 0) {
+        return props.pembayaran.tagihan?.nominal ?? props.beasiswa.diskon ?? 0;
+    }
+    return props.pembayaran.jumlah_bayar;
+});
 const copyVA = () => {
     navigator.clipboard.writeText(props.pembayaran.va_number);
     success('Nomor VA berhasil disalin');
@@ -211,7 +217,7 @@ const checkStatus = () => {
                             </div>
                             <div class="va-show-info-card">
                                 <div class="va-show-info-label">Nominal</div>
-                                <div class="va-show-info-value va-show-info-amount">{{ formatRupiah(pembayaran.jumlah_bayar) }}</div>
+                                <div class="va-show-info-value va-show-info-amount">{{ formatRupiah(displayNominal) }}<div v-if="beasiswa && beasiswa.tipe==='full'" style="font-size:0.65rem;color:#059669;font-weight:700;">Ditanggung Beasiswa</div></div>
                             </div>
                             <div class="va-show-info-card">
                                 <div class="va-show-info-label">Batas Bayar</div>
@@ -284,7 +290,7 @@ const checkStatus = () => {
                                 </div>
                                 <div class="va-show-info-card">
                                     <div class="va-show-info-label">Jumlah Bayar</div>
-                                    <div class="va-show-info-value va-show-info-amount">{{ formatRupiah(pembayaran.jumlah_bayar) }}</div>
+                                    <div class="va-show-info-value va-show-info-amount">{{ formatRupiah(displayNominal) }}<div v-if="beasiswa && beasiswa.tipe==='full'" style="font-size:0.65rem;color:#059669;font-weight:700;">Ditanggung Beasiswa</div></div>
                                 </div>
                                 <div class="va-show-info-card">
                                     <div class="va-show-info-label">Metode</div>
