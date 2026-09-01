@@ -115,12 +115,14 @@ const statusBadge = (status) => {
                                             </span>
                                         </td>
                                         <td>
-                                            <Link :href="route('admin.tagihan.show', t.id)" class="m-btn m-btn-sm m-btn-primary" title="Lihat Detail">
-                                                <i class="fas fa-eye"></i>
-                                            </Link>
-                                            <Link v-if="t.status === 'sudah_dibayar'" :href="route('admin.tagihan.invoice', t.id)" class="m-btn m-btn-sm m-btn-success" title="Cetak Invoice">
-                                                <i class="fas fa-file-invoice"></i>
-                                            </Link>
+                                            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                                                <Link :href="route('admin.tagihan.show', t.id)" class="m-btn m-btn-sm m-btn-primary" title="Lihat Detail">
+                                                    <i class="fas fa-eye"></i>
+                                                </Link>
+                                                <Link v-if="t.status === 'sudah_dibayar'" :href="route('admin.tagihan.invoice', t.id)" class="m-btn m-btn-sm m-btn-success" title="Cetak Invoice">
+                                                    <i class="fas fa-file-invoice"></i>
+                                                </Link>
+                                            </div>
                                         </td>
                                     </tr>
                                 </tbody>
