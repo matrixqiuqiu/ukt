@@ -678,16 +678,24 @@ const checkStatus = () => {
     }
 }
 @media (max-width: 768px) {
-    .va-show-header {
-        padding: 1.25rem;
-        flex-direction: column;
-    }
-    .va-show-body { padding: 1.25rem; }
-    .va-show-title { font-size: 1.25rem; }
-    .va-show-number-value { font-size: 1.25rem; letter-spacing: 1px; }
-    .va-show-info-grid { grid-template-columns: repeat(2, 1fr); }
-    .va-show-status-panel { flex-direction: column; }
+    .va-show-header { padding: 1rem; flex-direction: column; gap:0.75rem; }
+    .va-show-body { padding: 1rem; }
+    .va-show-title { font-size: 1.125rem; line-height:1.3; }
+    .va-show-subtitle { font-size:0.8125rem; }
+    .va-show-number-box { padding:1rem; }
+    .va-show-number-value { font-size: 1.1rem; letter-spacing: 1px; word-break:break-all; }
+    .va-show-number-row { flex-direction: column; align-items:stretch; }
+    .va-show-copy-btn { width:100%; justify-content:center; }
+    .va-show-info-grid { grid-template-columns: 1fr 1fr; gap:0.5rem; }
+    .va-show-info-card { padding:0.625rem; }
+    .va-show-info-value { font-size:0.8125rem; }
+    .beasiswa-banner { flex-direction: column; align-items:flex-start; }
+    .va-show-status-panel { flex-direction: column; padding:1rem; }
     .va-show-actions { flex-direction: column; }
     .va-show-btn { width: 100%; justify-content: center; }
+    .page-heading { flex-direction: column; align-items:flex-start; gap:0.5rem; font-size:0.9375rem; }
+}
+@media (max-width: 380px) {
+    .va-show-info-grid { grid-template-columns: 1fr; }
 }
 </style>
