@@ -190,9 +190,9 @@ const checkStatus = () => {
                     <!-- Beasiswa Banner -->
                     <div v-if="beasiswa" class="beasiswa-banner">
                         <div class="beasiswa-banner__icon"><i class="fas fa-graduation-cap"></i></div>
-                        <div class="beasiswa-banner__info">
+                        <div class="beasiswa-banner__info" style="flex:1;">
                             <div class="beasiswa-banner__title">Beasiswa: {{ beasiswa.nama }} ({{ beasiswa.kode }}) — {{ beasiswa.jenis }}</div>
-
+                            <div style="margin-top:0.4rem;"><span class="m-badge m-badge-success">{{ beasiswa.status }}</span></div>
                         </div>
                     </div>
 
@@ -641,13 +641,13 @@ const checkStatus = () => {
 }
 .beasiswa-banner {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.875rem;
     align-items: center;
     background: linear-gradient(135deg, #ecfdf5 0%, #f0fdfa 100%);
     border: 1.5px solid #6ee7b7;
     border-radius: 0.75rem;
-    padding: 0.875rem 1rem;
-    margin-bottom: 1.25rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
 }
 .beasiswa-banner__icon {
     width: 2.5rem; height: 2.5rem; border-radius: 0.75rem;
