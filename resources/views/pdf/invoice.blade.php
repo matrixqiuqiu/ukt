@@ -6,7 +6,7 @@
     <style>
         @page { size: A4; margin: 18mm 14mm 18mm 14mm; }
         body {
-            font-family: DejaVu Sans, sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 11px;
             color: {{ $data['colors']['content_text'] }};
             margin: 0; padding: 0;

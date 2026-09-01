@@ -5,7 +5,7 @@
 <title>Penerima {{ $beasiswa->kode }}</title>
 <style>
 @page { size: A4 landscape; margin: 12mm 10mm; }
-body{ font-family: DejaVu Sans, sans-serif; font-size: 9px; color:#1e293b; }
+body{ font-family: Arial, Helvetica, sans-serif; font-size: 9px; color:#1e293b; }
 h2{ margin:0; font-size:14px; }
 .meta{ color:#64748b; font-size:9px; margin:4px 0 10px; }
 table{ width:100%; border-collapse:collapse; }
