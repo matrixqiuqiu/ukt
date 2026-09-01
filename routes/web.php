@@ -153,6 +153,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::post('/beasiswa/{id}/toggle', [AdminBeasiswaController::class, 'toggle'])->name('beasiswa.toggle');
     Route::get('/beasiswa/export', [AdminBeasiswaController::class, 'export'])->name('beasiswa.export');
     Route::get('/beasiswa/{id}/penerima', [AdminBeasiswaController::class, 'assignments'])->name('beasiswa.assignments');
+    Route::get('/beasiswa/{id}/penerima/export', [AdminBeasiswaController::class, 'exportPenerima'])->name('beasiswa.penerima.export');
+    Route::get('/beasiswa/{id}/penerima/export-pdf', [AdminBeasiswaController::class, 'exportPenerimaPdf'])->name('beasiswa.penerima.export-pdf');
     Route::get('/beasiswa/{id}/cari-mahasiswa', [AdminBeasiswaController::class, 'searchMahasiswa'])->name('beasiswa.search-mahasiswa');
     Route::post('/beasiswa/{id}/assign', [AdminBeasiswaController::class, 'assign'])->name('beasiswa.assign');
     Route::post('/beasiswa/{id}/assign-bulk', [AdminBeasiswaController::class, 'assignBulk'])->name('beasiswa.assign-bulk');

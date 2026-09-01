@@ -95,6 +95,8 @@ const goPage = (url) => {
                         <div style="font-size:0.8125rem;color:var(--gray-600);">Kuota {{ beasiswa.terpakai }}/{{ beasiswa.kuota || '∞' }} · Sisa {{ Math.max(0, (beasiswa.kuota||0)-beasiswa.terpakai) }} · {{ beasiswa.tipe_diskon }} {{ beasiswa.nilai_diskon }}</div>
                     </div>
                     <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                        <a :href="route('admin.beasiswa.penerima.export', beasiswa.id)" class="m-btn m-btn-sm" style="background:#10b981;color:#fff;"><i class="fas fa-file-excel"></i> Excel</a>
+                        <a :href="route('admin.beasiswa.penerima.export-pdf', beasiswa.id)" class="m-btn m-btn-sm" style="background:#ef4444;color:#fff;"><i class="fas fa-file-pdf"></i> PDF</a>
                         <button class="m-btn m-btn-sm" style="background:#0ea5e9;color:#fff;" @click="syncTagihan" :disabled="syncing"><i :class="syncing ? 'fas fa-spinner fa-spin' : 'fas fa-sync'"></i> {{ syncing ? 'Sinkron...' : 'Sinkron Tagihan' }}</button>
                         <button class="m-btn m-btn-primary" @click="openModal"><i class="fas fa-user-plus"></i> Tambah Penerima</button>
                         <Link :href="route('admin.beasiswa.index')" class="m-btn m-btn-secondary">Kembali</Link>

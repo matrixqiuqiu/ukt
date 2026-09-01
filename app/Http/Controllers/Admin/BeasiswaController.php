@@ -337,4 +337,43 @@ class BeasiswaController extends Controller
         ])->toArray();
         return ExcelHelper::download('data-beasiswa-' . date('Ymd-His') . '.xlsx', $headers, $rows);
     }
+
+    public function exportPenerima($id)
+    {
+        $beasiswa = Beasiswa::with(['tahunAkademik','jenisBeasiswa'])->findOrFail($id);
+        $data = BeasiswaMahasiswa::where('beasiswa_id', $id)->with(['mahasiswa','tagihan'])->get();
+
+        $headers = ['No','NIM','Nama Lengkap','Jurusan','Angkatan','Tahun Akademik','Semester','Nominal Tagihan','Diskon Diterapkan','Status'];
+        $rows = [];
+        foreach ($data as $i => $a) {
+            $rows[] = [
+                $i+1,
+                $a->mahasiswa?->nim ?? '-',
+                $a->mahasiswa?->nama_lengkap ?? '-',
+                $a->mahasiswa?->jurusan ?? '-',
+                $a->mahasiswa?->angkatan ?? '-',
+                $a->tagihan?->tahun_akademik ?? $beasiswa->tahunAkademik?->nama ?? '-',
+                $a->tagihan?->semester ?? $beasiswa->semester ?? '-',
+                $a->tagihan ? number_format($a->tagihan->nominal,0,',','.') : '-',
+                number_format($a->diskon_diterapkan,0,',','.'),
+                $a->status,
+            ];
+        }
+        $safe = preg_replace('/[^A-Za-z0-9_-]/','-', $beasiswa->kode);
+        return ExcelHelper::download("penerima-{$safe}-" . date('Ymd-His') . '.xlsx', $headers, $rows);
+    }
+
+    public function exportPenerimaPdf($id)
+    {
+        $beasiswa = Beasiswa::with(['tahunAkademik','jenisBeasiswa'])->findOrFail($id);
+        $penerimas = BeasiswaMahasiswa::where('beasiswa_id', $id)->with(['mahasiswa','tagihan'])->orderBy('id')->get();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.penerima-beasiswa', [
+            'beasiswa' => $beasiswa,
+            'penerimas' => $penerimas,
+        ])->setPaper('A4','landscape');
+
+        $safe = preg_replace('/[^A-Za-z0-9_-]/','-', $beasiswa->kode);
+        return $pdf->download("penerima-{$safe}-" . date('Ymd-His') . '.pdf');
+    }
 }
