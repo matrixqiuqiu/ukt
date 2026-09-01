@@ -647,7 +647,7 @@ const checkStatus = () => {
     border: 1.5px solid #6ee7b7;
     border-radius: 0.75rem;
     padding: 1rem 1.25rem;
-    margin-bottom: 1.5rem;
+    margin: 1.25rem 2rem 1.5rem 2rem;
 }
 .beasiswa-banner__icon {
     width: 2.5rem; height: 2.5rem; border-radius: 0.75rem;
@@ -694,7 +694,7 @@ const checkStatus = () => {
     .va-show-info-grid { grid-template-columns: 1fr 1fr; gap:0.5rem; }
     .va-show-info-card { padding:0.625rem; }
     .va-show-info-value { font-size:0.8125rem; }
-    .beasiswa-banner { flex-direction: column; align-items:flex-start; }
+    .beasiswa-banner { flex-direction: column; align-items:flex-start; margin:1rem !important; }
     .va-show-status-panel { flex-direction: column; padding:1rem; }
     .va-show-actions { flex-direction: column; }
     .va-show-btn { width: 100%; justify-content: center; }
