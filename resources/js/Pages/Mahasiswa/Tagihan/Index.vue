@@ -143,7 +143,8 @@ const totalBelumBayar = computed(() => {
                             <i class="fas fa-check-circle empty-icon"></i>
                             <p>Belum ada tagihan untuk semester ini.</p>
                         </div>
-                        <div v-else class="table-responsive">
+                        <!-- Desktop table -->
+                        <div v-else class="table-responsive desktop-only">
                             <table class="m-data-table">
                                 <thead>
                                     <tr>
@@ -176,12 +177,7 @@ const totalBelumBayar = computed(() => {
                                                 <Link v-if="getAksi(t).show" :href="getAksi(t).href" class="m-btn m-btn--sm" :class="getAksi(t).class">
                                                     {{ getAksi(t).label }}
                                                 </Link>
-                                                <Link
-                                                    v-if="canDispensasi(t)"
-                                                    :href="route('mahasiswa.dispensasi.index')"
-                                                    class="m-btn m-btn--sm m-btn-warning"
-                                                    title="Ajukan perpanjangan tempo pembayaran"
-                                                >
+                                                <Link v-if="canDispensasi(t)" :href="route('mahasiswa.dispensasi.index')" class="m-btn m-btn--sm m-btn-warning" title="Ajukan perpanjangan tempo pembayaran">
                                                     <i class="fas fa-clock"></i> Dispensasi
                                                 </Link>
                                                 <Link v-if="getInvoiceLink(t)" :href="getInvoiceLink(t)" class="m-btn m-btn--sm m-btn--outline">
@@ -192,6 +188,23 @@ const totalBelumBayar = computed(() => {
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                        <!-- Mobile cards -->
+                        <div class="mobile-cards">
+                            <div v-for="t in tagihans.data" :key="t.id" class="m-card-mobile" :class="{'is-paid': isLunas(t)}">
+                                <div class="m-card-mobile-head">
+                                    <span class="m-badge m-badge-secondary">Smt {{ t.semester }} · {{ t.tahun_akademik }}</span>
+                                    <span class="m-badge" :class="getTagihanStatus(t).class">{{ getTagihanStatus(t).label }}</span>
+                                </div>
+                                <div class="m-card-mobile-amount">{{ formatRupiah(t.nominal) }}</div>
+                                <div v-if="t.beasiswa" style="font-size:0.75rem;color:#059669;margin-bottom:0.5rem;"><i class="fas fa-graduation-cap"></i> {{ t.beasiswa.kode }} — {{ t.beasiswa.nama }}</div>
+                                <div style="font-size:0.75rem;color:var(--gray-500);margin-bottom:0.75rem;"><i class="fas fa-clock"></i> Jatuh tempo: {{ formatDate(t.jatuh_tempo) }}</div>
+                                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                                    <Link v-if="getAksi(t).show" :href="getAksi(t).href" class="m-btn m-btn-sm" :class="getAksi(t).class" style="flex:1;">{{ getAksi(t).label }}</Link>
+                                    <Link v-if="getInvoiceLink(t)" :href="getInvoiceLink(t)" class="m-btn m-btn-sm m-btn--outline" style="flex:1;"><i class="fas fa-file-invoice"></i> Invoice</Link>
+                                </div>
+                                <Link v-if="canDispensasi(t)" :href="route('mahasiswa.dispensasi.index')" class="m-btn m-btn-sm m-btn-warning" style="width:100%;margin-top:0.5rem;"><i class="fas fa-clock"></i> Ajukan Dispensasi</Link>
+                            </div>
                         </div>
 
                         <!-- Pagination -->
@@ -350,5 +363,18 @@ const totalBelumBayar = computed(() => {
 .page-item.disabled .page-link {
     opacity: 0.5;
     cursor: not-allowed;
+}
+.desktop-only { display: block; }
+.mobile-cards { display: none; }
+.m-card-mobile { background:#fff;border:1px solid var(--gray-200);border-radius:1rem;padding:1rem;margin-bottom:0.75rem;box-shadow:var(--shadow-sm); }
+.m-card-mobile.is-paid { background:#f0fdf4;border-color:#bbf7d0; }
+.m-card-mobile-head { display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem; }
+.m-card-mobile-amount { font-size:1.125rem;font-weight:800;color:var(--gray-900);margin-bottom:0.25rem; }
+@media (max-width: 768px) {
+    .desktop-only { display: none; }
+    .mobile-cards { display: block; }
+    .semester-banner { flex-direction: column; gap:0.75rem; align-items:stretch; }
+    .summary-row { grid-template-columns: 1fr 1fr; }
+    .pagination-wrap { flex-direction: column; gap:1rem; }
 }
 </style>
