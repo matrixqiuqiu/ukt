@@ -192,11 +192,7 @@ const checkStatus = () => {
                         <div class="beasiswa-banner__icon"><i class="fas fa-graduation-cap"></i></div>
                         <div class="beasiswa-banner__info">
                             <div class="beasiswa-banner__title">Beasiswa: {{ beasiswa.nama }} ({{ beasiswa.kode }}) — {{ beasiswa.jenis }}</div>
-                            <div class="beasiswa-banner__desc">
-                                Diskon {{ beasiswa.tipe==='persen' ? beasiswa.nilai+'%' : beasiswa.tipe==='full' ? 'Gratis' : formatRupiah(beasiswa.nilai) }}
-                                · Terpotong <b>Rp {{ Number(beasiswa.diskon).toLocaleString('id-ID') }}</b>
-                                <span class="m-badge m-badge-success" style="margin-left:0.5rem;">{{ beasiswa.status }}</span>
-                            </div>
+
                         </div>
                     </div>
 
