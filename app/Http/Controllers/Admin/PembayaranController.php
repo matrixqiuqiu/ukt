@@ -245,6 +245,14 @@ class PembayaranController extends Controller
         if ($request->filled('jurusan')) $query->whereHas('tagihan.mahasiswa', fn($q) => $q->where('jurusan', $request->jurusan));
         $data = $query->latest('verified_at')->latest()->get();
 
+        // Enrich beasiswa info agar kolom Metode tidak hanya "Beasiswa" tapi detail kode+nama
+        $tagihanIds = $data->pluck('tagihan_id')->filter()->unique();
+        $map = \App\Models\BeasiswaMahasiswa::whereIn('tagihan_id', $tagihanIds)->with('beasiswa.jenisBeasiswa')->get()->keyBy('tagihan_id');
+        $data->each(function($p) use ($map){
+            $bm = $map->get($p->tagihan_id);
+            $p->setAttribute('_beasiswa', $bm ? ($bm->beasiswa->kode.' - '.$bm->beasiswa->nama_beasiswa) : null);
+        });
+
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.laporan-lunas', ['data' => $data])->setPaper('A4','landscape');
         return $pdf->stream('laporan-lunas-' . date('Ymd-His') . '.pdf');
     }
