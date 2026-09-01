@@ -51,6 +51,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('/tagihan/{id}', [AdminTagihanController::class, 'show'])->name('tagihan.show');
     Route::get('/pembayaran', [AdminPembayaranController::class, 'index'])->name('pembayaran.index');
     Route::get('/pembayaran/export-lunas', [AdminPembayaranController::class, 'exportLunas'])->name('pembayaran.export-lunas');
+    Route::get('/pembayaran/export-lunas-pdf', [AdminPembayaranController::class, 'exportLunasPdf'])->name('pembayaran.export-lunas-pdf');
     Route::get('/pembayaran/{id}', [AdminPembayaranController::class, 'show'])->name('pembayaran.show');
     Route::post('/pembayaran/{id}/verifikasi', [AdminPembayaranController::class, 'verifikasi'])->name('pembayaran.verifikasi');
     Route::post('/pembayaran/{id}/tolak', [AdminPembayaranController::class, 'tolak'])->name('pembayaran.tolak');

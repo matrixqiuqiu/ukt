@@ -6,7 +6,7 @@ use App\Models\Mahasiswa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
-use Inertia\Response;
+ use Inertia\Response;
 
 class ProfileController extends Controller
 {

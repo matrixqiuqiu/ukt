@@ -46,7 +46,8 @@ const exportLunasUrl = computed(() => {
                 <div class="custom-card">
                     <div class="card-header">
                         <h3 class="card-title">Daftar Pembayaran</h3>
-                        <a :href="exportLunasUrl" class="m-btn m-btn-sm" style="background:#16a34a;color:#fff;"><i class="fas fa-file-excel"></i> Export Lunas (Excel)</a>
+                        <a :href="exportLunasUrl" class="m-btn m-btn-sm" style="background:#16a34a;color:#fff;"><i class="fas fa-file-excel"></i> Excel</a>
+                        <a :href="route('admin.pembayaran.export-lunas-pdf', {search: search || undefined})" target="_blank" class="m-btn m-btn-sm" style="background:#ef4444;color:#fff;"><i class="fas fa-file-pdf"></i> Preview PDF</a>
                     </div>
                     <div class="card-body">
                         <div class="filter-section mb-4">

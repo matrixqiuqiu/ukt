@@ -231,4 +231,21 @@ class PembayaranController extends Controller
 
         return ExcelHelper::download($filename, $headers, $rows);
     }
+
+    public function exportLunasPdf(Request $request)
+    {
+        $query = Pembayaran::with(['tagihan.mahasiswa', 'metodePembayaran'])
+            ->where('status', 'dikonfirmasi')->whereHas('tagihan');
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->whereHas('tagihan.mahasiswa', fn($q) => $q->where('nim','like',"%{$s}%")->orWhere('nama_lengkap','like',"%{$s}%"));
+        }
+        if ($request->filled('tahun_akademik')) $query->whereHas('tagihan', fn($q) => $q->where('tahun_akademik', $request->tahun_akademik));
+        if ($request->filled('angkatan')) $query->whereHas('tagihan.mahasiswa', fn($q) => $q->where('angkatan', $request->angkatan));
+        if ($request->filled('jurusan')) $query->whereHas('tagihan.mahasiswa', fn($q) => $q->where('jurusan', $request->jurusan));
+        $data = $query->latest('verified_at')->latest()->get();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.laporan-lunas', ['data' => $data])->setPaper('A4','landscape');
+        return $pdf->stream('laporan-lunas-' . date('Ymd-His') . '.pdf');
+    }
 }
