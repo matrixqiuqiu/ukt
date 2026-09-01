@@ -65,7 +65,7 @@ class TagihanController extends Controller
         $data=$q->latest()->get();
         $headers=['No','NIM','Nama','Jurusan','Angkatan','Tahun Akademik','Semester','Nominal','Status','Jatuh Tempo'];
         $rows=$data->map(fn($t,$i)=>[$i+1, ($t->mahasiswa?->nim ?? '-'), ($t->mahasiswa?->nama_lengkap ?? '-'), ($t->mahasiswa?->jurusan ?? '-'), ($t->mahasiswa?->angkatan ?? '-'), $t->tahun_akademik, $t->semester, (int)$t->nominal, $t->status, ($t->jatuh_tempo?->format('d/m/Y') ?? '-')])->toArray();
-        return ExcelHelper::download('tagihan-'.date('Ymd-His').'.xlsx',$headers,$rows);
+        return ExcelHelper::download('tagihan-'.date('Ymd-His').'.xlsx',$headers,$rows, fn($row)=> ($row[8]==='sudah_dibayar' ? 'FFF0FDF4' : null));
     }
 
     public function exportPdf(Request $request)

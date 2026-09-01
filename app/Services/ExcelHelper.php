@@ -16,7 +16,7 @@ class ExcelHelper
      * @param  array<int,string>  $headers
      * @param  array<int,array<int,mixed>>  $rows
      */
-    public static function download(string $filename, array $headers, array $rows): StreamedResponse
+    public static function download(string $filename, array $headers, array $rows, ?callable $rowStyle = null): StreamedResponse
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -33,6 +33,13 @@ class ExcelHelper
         foreach ($rows as $rowIndex => $row) {
             foreach ($row as $colIndex => $value) {
                 $sheet->setCellValue($colLetter($colIndex + 1) . ($rowIndex + 2), $value);
+            }
+            if ($rowStyle) {
+                $color = $rowStyle($row, $rowIndex);
+                if ($color) {
+                    $range = 'A'.($rowIndex+2).':'.$sheet->getHighestDataColumn().($rowIndex+2);
+                    $sheet->getStyle($range)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB($color);
+                }
             }
         }
 
