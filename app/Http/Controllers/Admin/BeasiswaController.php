@@ -374,6 +374,6 @@ class BeasiswaController extends Controller
         ])->setPaper('A4','landscape');
 
         $safe = preg_replace('/[^A-Za-z0-9_-]/','-', $beasiswa->kode);
-        return $pdf->download("penerima-{$safe}-" . date('Ymd-His') . '.pdf');
+        return $pdf->stream("penerima-{$safe}-" . date('Ymd-His') . '.pdf');
     }
 }
