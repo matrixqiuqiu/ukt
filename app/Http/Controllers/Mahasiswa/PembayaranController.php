@@ -237,9 +237,23 @@ class PembayaranController extends Controller
             }
         }
 
+        $beasiswaData = null;
+        if ($beasiswaAssignment) {
+            $b = $beasiswaAssignment->beasiswa;
+            $beasiswaData = [
+                'kode' => $b->kode ?? '-',
+                'nama' => $b->nama_beasiswa ?? '-',
+                'jenis' => $beasiswaAssignment->beasiswa->jenisBeasiswa?->nama ?? $b->jenis ?? '-',
+                'tipe' => $b->tipe_diskon ?? '-',
+                'nilai' => $b->nilai_diskon ?? 0,
+                'diskon' => $beasiswaAssignment->diskon_diterapkan ?? 0,
+                'status' => $beasiswaAssignment->status ?? '-',
+            ];
+        }
+
         return Inertia::render('Mahasiswa/Pembayaran/Show', [
             'pembayaran' => $pembayaran,
-            'beasiswa' => $beasiswaAssignment,
+            'beasiswa' => $beasiswaData,
             'vaExpiredAt' => now()
                 ->addDays((int) env('NTB_VA_DEFAULT_EXPIRED_DAYS', 0))
                 ->addHours((int) env('NTB_VA_DEFAULT_EXPIRED_HOURS', 0))
