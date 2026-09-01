@@ -133,8 +133,6 @@ const submit = () => {
             </button>
         </form>
 
-        <div class="auth__footer">
-            <a href="/login" class="link" style="font-size:0.8125rem;">Masuk sebagai Mahasiswa</a>
-        </div>
+
     </GuestLayout>
 </template>
