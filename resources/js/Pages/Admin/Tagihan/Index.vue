@@ -57,6 +57,10 @@ const statusBadge = (status) => {
                 <div class="custom-card">
                     <div class="card-header">
                         <h4>Daftar Tagihan UKT</h4>
+                        <div style="display:flex;gap:0.5rem;">
+                            <a :href="route('admin.tagihan.export', {search: search || undefined, status: statusFilter || undefined})" class="m-btn m-btn-sm" style="background:#16a34a;color:#fff;"><i class="fas fa-file-excel"></i> Excel</a>
+                            <a :href="route('admin.tagihan.export-pdf', {search: search || undefined, status: statusFilter || undefined})" target="_blank" class="m-btn m-btn-sm" style="background:#ef4444;color:#fff;"><i class="fas fa-file-pdf"></i> Preview PDF</a>
+                        </div>
                     </div>
                     <div class="card-body">
                         <!-- Filter -->

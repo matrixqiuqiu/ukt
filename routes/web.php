@@ -47,6 +47,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('/mahasiswa', [AdminMahasiswaController::class, 'index'])->name('mahasiswa.index');
     Route::post('/mahasiswa/{id}/impersonate', [AdminMahasiswaController::class, 'impersonate'])->name('mahasiswa.impersonate');
     Route::get('/mahasiswa/{id}', [AdminMahasiswaController::class, 'show'])->name('mahasiswa.show');
+    Route::get('/tagihan/export', [AdminTagihanController::class, 'export'])->name('tagihan.export');
+    Route::get('/tagihan/export-pdf', [AdminTagihanController::class, 'exportPdf'])->name('tagihan.export-pdf');
     Route::get('/tagihan', [AdminTagihanController::class, 'index'])->name('tagihan.index');
     Route::get('/tagihan/{id}', [AdminTagihanController::class, 'show'])->name('tagihan.show');
     Route::get('/pembayaran', [AdminPembayaranController::class, 'index'])->name('pembayaran.index');
