@@ -125,11 +125,27 @@ class UktInvoiceService
             return '';
         }
 
-        if (filter_var($headerImage, FILTER_VALIDATE_URL)) {
+        if (str_starts_with($headerImage, 'data:')) {
             return $headerImage;
         }
 
-        return asset(ltrim($headerImage, '/'));
+        $cleanPath = preg_replace('#^https?://[^/]+#', '', $headerImage);
+        $cleanPath = ltrim($cleanPath, '/');
+        $storageRelative = preg_replace('#^storage/#', '', $cleanPath);
+        $diskPath = storage_path('app/public/' . $storageRelative);
+
+        if (is_file($diskPath)) {
+            $mime = @mime_content_type($diskPath) ?: 'image/png';
+            return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($diskPath));
+        }
+
+        $publicPath = public_path($cleanPath);
+        if (is_file($publicPath)) {
+            $mime = @mime_content_type($publicPath) ?: 'image/png';
+            return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($publicPath));
+        }
+
+        return $headerImage;
     }
 
     /**
@@ -141,33 +157,31 @@ class UktInvoiceService
         $setting = \App\Models\ThemeSetting::instance();
         $logo = $setting->invoice_logo ?? '';
 
-        if ($logo !== '') {
-            // Already an embedded data URI
-            if (str_starts_with($logo, 'data:')) {
-                return $logo;
-            }
+        if ($logo === '') {
+            return $this->resolveAssetDataUri('images/logo_ubg_black.png');
+        }
 
-            // Local file (storage or any public path) -> embed as data URI for dompdf
-            if (!filter_var($logo, FILTER_VALIDATE_URL)) {
-                $path = public_path(ltrim($logo, '/'));
-                if (is_file($path)) {
-                    // Skip oversized files: embedding them as base64 makes dompdf extremely slow
-                    if (filesize($path) > 300 * 1024) {
-                        return '';
-                    }
-
-                    $mime = mime_content_type($path) ?: 'image/png';
-                    return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
-                }
-
-                return $logo;
-            }
-
+        if (str_starts_with($logo, 'data:')) {
             return $logo;
         }
 
-        // Fallback: bundled logo shipped with the app
-        return $this->resolveAssetDataUri('images/logo_ubg_black.png');
+        $cleanPath = preg_replace('#^https?://[^/]+#', '', $logo);
+        $cleanPath = ltrim($cleanPath, '/');
+        $storageRelative = preg_replace('#^storage/#', '', $cleanPath);
+        $diskPath = storage_path('app/public/' . $storageRelative);
+
+        if (is_file($diskPath)) {
+            $mime = @mime_content_type($diskPath) ?: 'image/png';
+            return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($diskPath));
+        }
+
+        $publicPath = public_path($cleanPath);
+        if (is_file($publicPath)) {
+            $mime = @mime_content_type($publicPath) ?: 'image/png';
+            return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($publicPath));
+        }
+
+        return $logo;
     }
 
     private function resolveColorSettings(): array
@@ -231,6 +245,23 @@ class UktInvoiceService
             $result = $writer->write($qr);
             return $result->getDataUri();
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('QR PNG gagal: ' . $e->getMessage());
+        }
+
+        // Fallback: SVG tidak butuh ext-gd, tetap tampil di browser & dompdf
+        try {
+            $qr = new QrCode(
+                data: $url,
+                encoding: new Encoding('UTF-8'),
+                errorCorrectionLevel: ErrorCorrectionLevel::Medium,
+                size: 300,
+                margin: 10,
+                roundBlockSizeMode: RoundBlockSizeMode::Margin,
+            );
+            $writer = new \Endroid\QrCode\Writer\SvgWriter();
+            return $writer->write($qr)->getDataUri();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('QR SVG gagal: ' . $e->getMessage());
             return '';
         }
     }
