@@ -271,26 +271,29 @@ const createInstantVA = async () => {
             payment_type: 'virtual_account',
         };
 
-        const res = await axios.post(route('mahasiswa.pembayaran.store'), payload, {
-            headers: { 'Accept': 'text/html, application/xhtml+xml' },
-        });
+        const res = await axios.post(route('mahasiswa.pembayaran.store'), payload);
 
-        toastSuccess('Nomor Virtual Account berhasil diterbitkan!');
-        
+        // Backend bisa menjawab JSON (gagal/sukses) atau redirect yang diikuti axios —
+        // klaim sukses HANYA bila VA pending benar-benar ada setelah reload.
+        if (res.data && typeof res.data === 'object' && res.data.success === false) {
+            toastError(res.data.message || 'Gagal membuat Virtual Account. Silakan coba lagi.');
+            return;
+        }
+
         router.reload({
             only: ['tagihans', 'activeTagihan', 'stats'],
             onSuccess: (page) => {
                 const updatedList = page.props.tagihans?.data || page.props.tagihans || [];
                 const updated = updatedList.find(t => t.id === props.tagihan.id);
-                if (updated && updated.pending_pembayaran) {
-                    currentPendingPayment.value = updated.pending_pembayaran;
+                const pending = updated?.pending_pembayaran
+                    || (page.props.activeTagihan && page.props.activeTagihan.id === props.tagihan.id && page.props.activeTagihan.pending_pembayaran);
+                if (pending) {
+                    currentPendingPayment.value = pending;
                     paymentExpired.value = false;
                     startTimers();
-                } else if (page.props.activeTagihan && page.props.activeTagihan.id === props.tagihan.id && page.props.activeTagihan.pending_pembayaran) {
-                    currentPendingPayment.value = page.props.activeTagihan.pending_pembayaran;
-                    paymentExpired.value = false;
-                    startTimers();
+                    toastSuccess('Nomor Virtual Account berhasil diterbitkan!');
                 } else {
+                    toastError('VA tidak terbit. Periksa pesan error / coba lagi.');
                     router.visit(window.location.href, { preserveScroll: true });
                 }
             }

@@ -207,12 +207,19 @@ class PembayaranController extends Controller
      */
     private function storeViaBtn(Request $request, $user, $mahasiswa, $tagihan, $metode, float $amount)
     {
+        $btnFail = function (string $message) use ($request) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 422);
+            }
+            return back()->withErrors(['payment' => $message]);
+        };
+
         $svc = new BtnVaService();
         if (!$svc->isConfigured()) {
-            return back()->withErrors(['payment' => 'Kanal BTN belum dikonfigurasi. Silakan hubungi admin.']);
+            return $btnFail('Kanal BTN belum dikonfigurasi. Silakan hubungi admin.');
         }
         if (trim((string) config('virtual_account.btn.credentials.current_account_no', '')) === '') {
-            return back()->withErrors(['payment' => 'Rekening giro penampung BTN belum diisi (BTN_VA_CURRENT_ACCOUNT_NO). Silakan hubungi admin.']);
+            return $btnFail('Rekening giro penampung BTN belum diisi (BTN_VA_CURRENT_ACCOUNT_NO). Silakan hubungi admin.');
         }
 
         $digits = preg_replace('/\D/', '', $mahasiswa->nim) ?: '';
@@ -255,7 +262,7 @@ class PembayaranController extends Controller
                 'message' => $result['message'] ?? 'Unknown',
                 'response' => $result['response_payload'] ?? null,
             ]);
-            return back()->withErrors(['payment' => 'Gagal membuat VA BTN: ' . ($result['message'] ?? 'Unknown')]);
+            return $btnFail('Gagal membuat VA BTN: ' . ($result['message'] ?? 'Unknown'));
         }
 
         $vaData = $result['response_payload']['virtualAccountData'] ?? [];
@@ -297,11 +304,15 @@ class PembayaranController extends Controller
 
             DB::commit();
 
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'pembayaran_id' => $pembayaran->id, 'va_number' => $finalVaNumber]);
+            }
+
             return redirect()->route('mahasiswa.pembayaran.show', $pembayaran->id);
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return back()->withErrors(['payment' => 'Gagal membuat VA BTN: ' . $e->getMessage()]);
+            return $btnFail('Gagal membuat VA BTN: ' . $e->getMessage());
         }
     }
 
