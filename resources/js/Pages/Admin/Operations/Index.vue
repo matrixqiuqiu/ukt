@@ -395,35 +395,62 @@ async function btnTestSingleEndpoint(ep) {
 
 function buildBtnEndpointParams(key) {
   const svcId = props.btnConfig?.partner_service_id || '96719';
-  const sampleVa = svcId + '25080110013';
+  const stamp = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const ymdhis = String(stamp.getFullYear()).slice(-2) + pad(stamp.getMonth() + 1) + pad(stamp.getDate()) + pad(stamp.getHours()) + pad(stamp.getMinutes()) + pad(stamp.getSeconds());
+  const exp = new Date(stamp.getTime() + 7 * 86400000);
+  const expStr = exp.getFullYear() + '-' + pad(exp.getMonth() + 1) + '-' + pad(exp.getDate()) + 'T' + pad(exp.getHours()) + ':' + pad(exp.getMinutes()) + ':' + pad(exp.getSeconds()) + '+07:00';
   switch (key) {
     case 'create':
-    case 'update':
       return {
-        customerNo: '25080110013',
-        virtualAccountNo: sampleVa,
-        virtualAccountName: key === 'create' ? 'DEV TEST BTNVA' : 'DEV TEST BTNVA UPDATE',
-        trxId: 'BTN' + String(Date.now()).slice(-12),
-        totalAmount: { value: key === 'create' ? '150000.00' : '170000.00', currency: 'IDR' },
+        partnerServiceId: svcId,
+        customerNo: '0000000000001',
+        virtualAccountNo: svcId + '0000000000001',
+        virtualAccountName: 'Test VA',
+        trxId: 'BGS' + ymdhis,
+        totalAmount: { value: '20000.00', currency: 'IDR' },
         virtualAccountTrxType: 'C',
-        additionalInfo: { description: 'Pembayaran UKT via BTN VA' },
+        expiredDate: expStr,
+        additionalInfo: { description: 'Billing', payment: null, currentAccountNo: null, paymentCode: null },
       };
     case 'inquiry':
-    case 'delete':
       return {
-        customerNo: '25080110013',
-        virtualAccountNo: sampleVa,
-        trxId: 'BTN' + String(Date.now()).slice(-12),
+        partnerServiceId: svcId,
+        customerNo: '0000000000001',
+        virtualAccountNo: svcId + '0000000000001',
+        trxId: 'BTN' + ymdhis,
       };
     case 'status':
       return {
-        customerNo: '25080110013',
-        virtualAccountNo: sampleVa,
-        inquiryRequestId: 'INQ' + String(Date.now()).slice(-12),
+        partnerServiceId: svcId,
+        customerNo: '0000000000001',
+        virtualAccountNo: svcId + '0000000000001',
+        inquiryRequestId: 'INQ' + ymdhis,
+        paymentRequestId: 'PAY' + ymdhis,
+        additionalInfo: {},
+      };
+    case 'update':
+      return {
+        partnerServiceId: svcId,
+        customerNo: '0000000000001',
+        virtualAccountNo: svcId + '0000000000001',
+        virtualAccountName: 'DEV TEST BTNVA',
+        trxId: 'BTN' + ymdhis,
+        totalAmount: { value: '10000.00', currency: 'IDR' },
+        virtualAccountTrxType: 'C',
+        expiredDate: expStr,
+        additionalInfo: { description: 'Test Update VA BTNVA', payment: '', currentAccountNo: '', paymentCode: '' },
+      };
+    case 'delete':
+      return {
+        partnerServiceId: svcId,
+        customerNo: '0000000000001',
+        virtualAccountNo: svcId + '0000000000001',
+        trxId: 'BTN' + ymdhis,
       };
     case 'report': {
-      const d = new Date().toISOString().split('T')[0];
-      return { startDate: d, endDate: d };
+      const d = stamp.toISOString().split('T')[0];
+      return { partnerServiceId: svcId, startDate: d, endDate: '' };
     }
     case 'token':
       return { grantType: 'client_credentials' };
