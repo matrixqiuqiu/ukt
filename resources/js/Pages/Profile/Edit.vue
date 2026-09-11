@@ -322,26 +322,66 @@ const isAdmin = computed(() => user.value?.role === 'admin');
 
 @media (max-width: 768px) {
     .profile-cover-card {
-        margin: 1rem;
+        margin: 0.75rem;
+        border-radius: 0.75rem;
     }
     .profile-cover-img {
-        height: 140px;
+        height: 120px;
     }
     .profile-cover-bottom {
         flex-direction: column;
         align-items: flex-start;
         margin-top: -36px;
         padding: 0 1rem 1rem;
+        gap: 0.75rem;
     }
     .profile-avatar {
-        width: 72px;
-        height: 72px;
+        width: 68px;
+        height: 68px;
     }
     .profile-name {
-        font-size: 1.125rem;
+        font-size: 1.1rem;
+    }
+    .profile-role {
+        font-size: 0.78rem;
     }
     .profile-content {
-        padding: 1rem;
+        padding: 0.75rem;
+        padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    }
+    .profile-card {
+        border-radius: 0.75rem;
+    }
+    .profile-card-title {
+        font-size: 0.875rem;
+        padding: 0.85rem 1rem;
+    }
+    .profile-about {
+        padding: 0.35rem 0.85rem;
+    }
+    .profile-about-item {
+        flex-wrap: wrap;
+        gap: 0.15rem;
+        padding: 0.5rem 0;
+    }
+    .profile-about-label {
+        font-size: 0.75rem;
+    }
+    .profile-about-value {
+        font-size: 0.82rem;
+        word-break: break-word;
+    }
+    .profile-card-body {
+        padding: 0.85rem;
+    }
+    .profile-sidebar-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 0.8rem;
+    }
+    .profile-sidebar-value {
+        font-size: 0.82rem;
+        word-break: break-word;
     }
 }
 </style>

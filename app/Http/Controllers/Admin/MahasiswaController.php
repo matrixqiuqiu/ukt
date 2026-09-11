@@ -124,7 +124,7 @@ class MahasiswaController extends Controller
 
     public function show($id): Response
     {
-        $mahasiswa = Mahasiswa::with(['user', 'tagihans'])->findOrFail($id);
+        $mahasiswa = Mahasiswa::with(['user', 'tagihans.pembayarans.metodePembayaran'])->findOrFail($id);
         $semesterService = app(MahasiswaSemesterService::class);
         $hitung = $semesterService->hitung($mahasiswa);
 

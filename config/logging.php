@@ -134,6 +134,13 @@ return [
             'days' => 30,
         ],
 
+        'bankbtn' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/bankbtn.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 30,
+        ],
+
     ],
 
 ];

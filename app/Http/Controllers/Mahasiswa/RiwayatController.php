@@ -15,11 +15,49 @@ class RiwayatController extends Controller
         $user = $request->user();
         $mahasiswa = $user->getMahasiswaByNim();
 
-        $riwayat = Pembayaran::whereHas('tagihan', function ($q) use ($mahasiswa) {
-                $q->where('mahasiswa_id', $mahasiswa->id);
-            })
-            ->with(['tagihan.mahasiswa', 'metodePembayaran'])
-            ->latest()
+        $baseQuery = Pembayaran::whereHas('tagihan', function ($q) use ($mahasiswa) {
+            $q->where('mahasiswa_id', $mahasiswa->id);
+        });
+
+        // Calculate all-time summary statistics for this student
+        $stats = [
+            'total_transaksi' => (clone $baseQuery)->count(),
+            'total_lunas' => (clone $baseQuery)->where('status', 'dikonfirmasi')->count(),
+            'total_nominal_lunas' => (float) (clone $baseQuery)->where('status', 'dikonfirmasi')->sum('jumlah_bayar'),
+            'total_pending' => (clone $baseQuery)->where('status', 'pending')->count(),
+        ];
+
+        $query = (clone $baseQuery)->with(['tagihan.mahasiswa', 'metodePembayaran']);
+
+        // Filter by status if requested
+        if ($request->filled('status') && $request->status !== 'semua') {
+            if ($request->status === 'lunas') {
+                $query->where('status', 'dikonfirmasi');
+            } elseif ($request->status === 'pending') {
+                $query->where('status', 'pending');
+            } elseif ($request->status === 'ditolak') {
+                $query->whereIn('status', ['ditolak', 'expired']);
+            }
+        }
+
+        // Search query
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('va_number', 'like', "%{$search}%")
+                  ->orWhere('id', 'like', "%{$search}%")
+                  ->orWhere('nama_pengirim', 'like', "%{$search}%")
+                  ->orWhereHas('tagihan', function ($tq) use ($search) {
+                      $tq->where('semester', 'like', "%{$search}%")
+                         ->orWhere('tahun_akademik', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('metodePembayaran', function ($mq) use ($search) {
+                      $mq->where('nama_metode', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $riwayat = $query->latest()
             ->paginate(10)
             ->withQueryString();
 
@@ -29,6 +67,12 @@ class RiwayatController extends Controller
 
         $riwayat->getCollection()->transform(function ($p) use ($beasiswaMap) {
             $p->created_at = $p->created_at->toIso8601String();
+            if ($p->verified_at) {
+                $p->verified_at = $p->verified_at->toIso8601String();
+            }
+            if ($p->va_expired_at) {
+                $p->va_expired_at = $p->va_expired_at->toIso8601String();
+            }
             $bm = $beasiswaMap->get($p->tagihan_id);
             if ($bm) {
                 $p->setAttribute('beasiswa', [
@@ -42,6 +86,11 @@ class RiwayatController extends Controller
 
         return Inertia::render('Mahasiswa/Riwayat/Index', [
             'riwayat' => $riwayat,
+            'stats' => $stats,
+            'filters' => [
+                'status' => $request->input('status', 'semua'),
+                'search' => $request->input('search', ''),
+            ],
         ]);
     }
 

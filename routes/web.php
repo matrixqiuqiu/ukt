@@ -69,20 +69,33 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('/siakad/test-connection', [AdminSiakadController::class, 'testConnection'])->name('siakad.test-connection');
 
     // Komponen Biaya
-    Route::get('/komponen-biaya', [AdminKomponenBiayaController::class, 'index'])->name('komponen-biaya.index');
+    Route::get('/komponen-biaya', function () {
+        return redirect()->route('admin.biaya.index', ['tab' => 'komponen']);
+    })->name('komponen-biaya.index');
     Route::post('/komponen-biaya', [AdminKomponenBiayaController::class, 'store'])->name('komponen-biaya.store');
     Route::put('/komponen-biaya/{id}', [AdminKomponenBiayaController::class, 'update'])->name('komponen-biaya.update');
     Route::delete('/komponen-biaya/{id}', [AdminKomponenBiayaController::class, 'destroy'])->name('komponen-biaya.destroy');
     Route::post('/komponen-biaya/{id}/toggle', [AdminKomponenBiayaController::class, 'toggle'])->name('komponen-biaya.toggle');
 
-    // Biaya Konfigurasi
+    // Biaya Konfigurasi / Tarif
     Route::get('/biaya', [AdminBiayaKonfigurasiController::class, 'index'])->name('biaya.index');
     Route::post('/biaya', [AdminBiayaKonfigurasiController::class, 'store'])->name('biaya.store');
+    Route::post('/biaya/copy-angkatan', [AdminBiayaKonfigurasiController::class, 'copyAngkatan'])->name('biaya.copy-angkatan');
     Route::put('/biaya/{id}', [AdminBiayaKonfigurasiController::class, 'update'])->name('biaya.update');
     Route::delete('/biaya/{id}', [AdminBiayaKonfigurasiController::class, 'destroy'])->name('biaya.destroy');
     Route::post('/biaya/{id}/toggle', [AdminBiayaKonfigurasiController::class, 'toggle'])->name('biaya.toggle');
 
-    // Semester Aktif
+    // Periode & Tahun Akademik
+    Route::get('/tahun-akademik', [AdminTahunAkademikController::class, 'index'])->name('tahun-akademik.index');
+    Route::post('/tahun-akademik', [AdminTahunAkademikController::class, 'store'])->name('tahun-akademik.store');
+    Route::put('/tahun-akademik/jatuh-tempo', [AdminTahunAkademikController::class, 'updateJatuhTempo'])->name('tahun-akademik.jatuh-tempo');
+    Route::post('/tahun-akademik/generate-tagihan', [AdminTahunAkademikController::class, 'generateTagihan'])->name('tahun-akademik.generate-tagihan');
+    Route::put('/tahun-akademik/{id}', [AdminTahunAkademikController::class, 'update'])->name('tahun-akademik.update');
+    Route::delete('/tahun-akademik/{id}', [AdminTahunAkademikController::class, 'destroy'])->name('tahun-akademik.destroy');
+    Route::post('/tahun-akademik/{id}/activate', [AdminTahunAkademikController::class, 'activate'])->name('tahun-akademik.activate');
+    Route::post('/tahun-akademik/{id}/toggle', [AdminTahunAkademikController::class, 'toggle'])->name('tahun-akademik.toggle');
+
+    // Backward-compatible Semester Aktif Route (Redirect ke Periode & Tahun Akademik)
     Route::get('/semester-aktif', [AdminSemesterAktifController::class, 'index'])->name('semester-aktif.index');
     Route::put('/semester-aktif', [AdminSemesterAktifController::class, 'update'])->name('semester-aktif.update');
 
@@ -104,19 +117,14 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('/fakultas/export', [AdminFakultasController::class, 'export'])->name('fakultas.export');
     Route::post('/fakultas/import', [AdminFakultasController::class, 'import'])->name('fakultas.import');
 
-    // Theme Settings
+    // Theme & Application Settings
     Route::get('/pengaturan', [AdminThemeSettingController::class, 'index'])->name('pengaturan.index');
     Route::put('/pengaturan', [AdminThemeSettingController::class, 'update'])->name('pengaturan.update');
     Route::post('/pengaturan/reset', [AdminThemeSettingController::class, 'reset'])->name('pengaturan.reset');
     Route::post('/pengaturan/upload-logo', [AdminThemeSettingController::class, 'uploadLogo'])->name('pengaturan.upload-logo');
     Route::post('/pengaturan/upload-header', [AdminThemeSettingController::class, 'uploadInvoiceHeader'])->name('pengaturan.upload-header');
-
-    // Tahun Akademik
-    Route::get('/tahun-akademik', [AdminTahunAkademikController::class, 'index'])->name('tahun-akademik.index');
-    Route::post('/tahun-akademik', [AdminTahunAkademikController::class, 'store'])->name('tahun-akademik.store');
-    Route::put('/tahun-akademik/{id}', [AdminTahunAkademikController::class, 'update'])->name('tahun-akademik.update');
-    Route::delete('/tahun-akademik/{id}', [AdminTahunAkademikController::class, 'destroy'])->name('tahun-akademik.destroy');
-    Route::post('/tahun-akademik/{id}/toggle', [AdminTahunAkademikController::class, 'toggle'])->name('tahun-akademik.toggle');
+    Route::post('/pengaturan/remove-logo', [AdminThemeSettingController::class, 'removeLogo'])->name('pengaturan.remove-logo');
+    Route::post('/pengaturan/remove-header', [AdminThemeSettingController::class, 'removeHeader'])->name('pengaturan.remove-header');
 
     // Pengaturan User
     Route::get('/user', [AdminUserController::class, 'index'])->name('user.index');
@@ -124,14 +132,18 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::put('/user/{id}', [AdminUserController::class, 'update'])->name('user.update');
     Route::delete('/user/{id}', [AdminUserController::class, 'destroy'])->name('user.destroy');
 
-    // Profil Website
-    Route::get('/profil-website', [AdminWebsiteProfileController::class, 'index'])->name('profil-website.index');
-    Route::put('/profil-website', [AdminWebsiteProfileController::class, 'update'])->name('profil-website.update');
+    // Profil Website (Redirected to Pengaturan for unified settings)
+    Route::get('/profil-website', function () {
+        return redirect()->route('admin.pengaturan.index');
+    })->name('profil-website.index');
+    Route::put('/profil-website', [AdminThemeSettingController::class, 'update'])->name('profil-website.update');
 
     // Operations - Payment Gateway
     Route::get('/operations', [AdminOperationsController::class, 'index'])->name('operations.index');
     Route::post('/operations/test-token', [AdminOperationsController::class, 'testToken'])->name('operations.test-token');
     Route::post('/operations/test-endpoint', [AdminOperationsController::class, 'testEndpoint'])->name('operations.test-endpoint');
+    Route::post('/operations/test-btn-token', [AdminOperationsController::class, 'testBtnToken'])->name('operations.test-btn-token');
+    Route::post('/operations/test-btn-endpoint', [AdminOperationsController::class, 'testBtnEndpoint'])->name('operations.test-btn-endpoint');
     Route::post('/operations/simulate-payment', [AdminOperationsController::class, 'simulatePayment'])->name('operations.simulate-payment');
     Route::get('/operations/transaksi-history', [AdminOperationsController::class, 'transaksiHistory'])->name('operations.transaksi-history');
     Route::post('/operations/clear-api-logs', [AdminOperationsController::class, 'clearApiLogs'])->name('operations.clear-api-logs');
@@ -220,17 +232,55 @@ Route::middleware('auth')->group(function () {
 
 // Public invoice verification via signed URL (linked from printed invoices)
 Route::get('/verify/invoice/{pembayaran}', function (Illuminate\Http\Request $request, int $pembayaran) {
-    if (!$request->hasValidSignature()) {
-        abort(403);
+    $isValid = $request->hasValidSignature();
+    $data = null;
+
+    if ($isValid) {
+        $data = (new App\Services\UktInvoiceService())->build($pembayaran);
+        if (!$data) {
+            $isValid = false;
+        }
     }
 
-    $data = (new App\Services\UktInvoiceService())->build($pembayaran);
+    $pdfUrl = $isValid ? Illuminate\Support\Facades\URL::signedRoute('verify.invoice.pdf', ['pembayaran' => $pembayaran]) : null;
 
-    if (!$data) {
+    return view('verify.invoice', [
+        'isValid' => $isValid,
+        'data' => $data,
+        'signature' => $request->query('signature'),
+        'pdfUrl' => $pdfUrl,
+    ]);
+})->name('verify.invoice');
+
+Route::get('/verify/invoice/{pembayaran}/pdf', function (Illuminate\Http\Request $request, int $pembayaran) {
+    if (!$request->hasValidSignature()) {
+        abort(403, 'Tanda tangan digital dokumen tidak valid.');
+    }
+
+    $invoiceService = new App\Services\UktInvoiceService();
+    $invoiceData = $invoiceService->build($pembayaran);
+
+    if (!$invoiceData) {
+        abort(404, 'Data faktur tidak ditemukan.');
+    }
+
+    $pdf = Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.invoice', ['data' => $invoiceData]);
+    $pdf->setPaper('a4', 'portrait');
+
+    return $pdf->stream($invoiceData['file_name']);
+})->name('verify.invoice.pdf');
+
+// Fallback route to serve uploaded files from storage/app/public
+Route::get('/storage/{path}', function (string $path) {
+    $filePath = storage_path('app/public/' . $path);
+    if (!file_exists($filePath) || is_dir($filePath)) {
         abort(404);
     }
-
-    return view('pdf.invoice', ['data' => $data]);
-})->name('verify.invoice');
+    $mimeType = @mime_content_type($filePath) ?: 'application/octet-stream';
+    return response()->file($filePath, [
+        'Content-Type' => $mimeType,
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+})->where('path', '.*')->name('storage.file');
 
 require __DIR__.'/auth.php';

@@ -23,7 +23,11 @@ class ThemeSettingController extends Controller
 
     public function update(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
+            'website_name' => 'nullable|string|max:255',
+            'website_short_name' => 'nullable|string|max:100',
+            'website_tagline' => 'nullable|string|max:255',
+            'website_footer_text' => 'nullable|string|max:255',
             'sidebar_bg' => 'required|string|max:7',
             'sidebar_text' => 'required|string|max:7',
             'sidebar_icon' => 'required|string|max:7',
@@ -43,24 +47,33 @@ class ThemeSettingController extends Controller
             'invoice_institution_address' => 'nullable|string|max:500',
             'invoice_institution_phone' => 'nullable|string|max:50',
             'invoice_institution_email' => 'nullable|email|max:100',
-            'invoice_institution_website' => 'nullable|url|max:255',
+            'invoice_institution_website' => 'nullable|string|max:255',
+            'invoice_logo' => 'nullable|string|max:500',
+            'invoice_header_image' => 'nullable|string|max:500',
         ]);
 
-        $theme = ThemeSetting::instance();
-        $theme->update($request->only([
-            'sidebar_bg', 'sidebar_text', 'sidebar_icon', 'sidebar_active_text',
-            'sidebar_active_bg', 'sidebar_hover_bg',
-            'navbar_bg', 'navbar_text', 'navbar_border',
-            'primary_color', 'logo_text',
-            'content_bg', 'content_text', 'card_bg', 'card_border',
-            'invoice_institution_name',
-            'invoice_institution_address',
-            'invoice_institution_phone',
-            'invoice_institution_email',
-            'invoice_institution_website',
-        ]));
+        if (!empty($validated['invoice_institution_website']) && !preg_match('#^https?://#i', $validated['invoice_institution_website'])) {
+            $validated['invoice_institution_website'] = 'https://' . ltrim($validated['invoice_institution_website'], '/');
+        }
 
-        return back()->with('success', 'Pengaturan tema berhasil disimpan.');
+        $theme = ThemeSetting::instance();
+        $theme->update($validated);
+
+        return back()->with('success', 'Pengaturan aplikasi dan tema berhasil disimpan.');
+    }
+
+    public function removeLogo()
+    {
+        $theme = ThemeSetting::instance();
+        $theme->update(['invoice_logo' => null]);
+        return back()->with('success', 'Logo institusi berhasil dihapus.');
+    }
+
+    public function removeHeader()
+    {
+        $theme = ThemeSetting::instance();
+        $theme->update(['invoice_header_image' => null]);
+        return back()->with('success', 'Header kop surat berhasil dihapus.');
     }
 
     public function uploadLogo(Request $request)

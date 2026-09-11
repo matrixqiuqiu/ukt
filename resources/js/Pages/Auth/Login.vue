@@ -5,299 +5,521 @@ import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 
 defineProps({
-    canResetPassword: { type: Boolean },
-    status: { type: String },
+  canResetPassword: { type: Boolean },
+  status: { type: String },
 });
 
 const page = usePage();
-const logoUrl = computed(() => page.props.theme?.invoice_logo || '');
+const institutionPhone = computed(() => page.props.theme?.invoice_institution_phone || '(0370) 634498');
+const institutionEmail = computed(() => page.props.theme?.invoice_institution_email || 'info@universitasbumigora.ac.id');
 
 const form = useForm({
-    nim: '',
-    password: '',
+  nim: '',
+  password: '',
 });
 
 const showPassword = ref(false);
+const showHelpModal = ref(false);
 
 const togglePassword = () => {
-    showPassword.value = !showPassword.value;
-    console.log('Password toggled:', showPassword.value);
+  showPassword.value = !showPassword.value;
 };
 
 const submit = () => {
-    form.post(route('login'), {
-        onFinish: () => form.reset('password'),
-    });
+  form.post(route('login'), {
+    onFinish: () => form.reset('password'),
+  });
 };
 </script>
 
 <template>
-    <GuestLayout>
-        <Head title="Masuk" />
+  <GuestLayout>
+    <Head title="Login Mahasiswa - Portal UKT" />
 
-        <div v-if="status" class="status-message">
-            {{ status }}
+    <!-- Status Message Alert -->
+    <div v-if="status" class="alert-status-box">
+      <i class="fas fa-info-circle"></i> {{ status }}
+    </div>
+
+    <!-- Login Header -->
+    <div class="auth-header">
+      <div v-if="page.props.theme?.logo_url || page.props.theme?.invoice_logo" class="auth-brand-logo-wrap">
+        <img :src="page.props.theme?.logo_url || page.props.theme?.invoice_logo" alt="Logo Institusi" class="auth-brand-logo-img" />
+      </div>
+      <div class="role-badge">
+        <span class="badge-dot"></span> PORTAL MAHASISWA
+      </div>
+      <h2 class="auth-title">Masuk Akun Mahasiswa</h2>
+      <p class="auth-subtitle">Gunakan Nomor Induk Mahasiswa (NIM) dan Password SIAKAD Anda</p>
+    </div>
+
+    <!-- Info Box SIAKAD Integration -->
+    <div class="siakad-notice-box">
+      <div class="notice-icon"><i class="fas fa-university"></i></div>
+      <div class="notice-text">
+        <strong>Terintegrasi dengan SIAKAD</strong>
+        <p>Login menggunakan akun portal akademik resmi kampus.</p>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <form @submit.prevent="submit" class="auth-form-body">
+      <!-- NIM Field -->
+      <div class="form-field-solid">
+        <label for="loginNim">NIM (Nomor Induk Mahasiswa)</label>
+        <div class="input-control-wrap" :class="{ 'has-error': form.errors.nim }">
+          <span class="input-icon"><i class="fas fa-id-card"></i></span>
+          <input
+            id="loginNim"
+            type="text"
+            class="input-native"
+            v-model="form.nim"
+            required
+            autofocus
+            autocomplete="username"
+            placeholder="Masukkan NIM Anda"
+          />
         </div>
+        <InputError class="field-error-msg" :message="form.errors.nim" />
+      </div>
 
-        <div class="login-head">
-            <div class="login-brand" :class="{ 'has-logo': logoUrl }">
-                <img v-if="logoUrl" :src="logoUrl" alt="Logo" class="login-brand-img" />
-                <svg v-else xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M12 1.5l3.4 7.1 7.1 3.4-7.1 3.4-3.4 7.1-3.4-7.1L1.5 12l7.1-3.4z" opacity=".45"/>
-                    <path d="M12 1.5l3.4 7.1L12 12 8.6 8.6z"/>
-                </svg>
-            </div>
-            <h2 class="login-title">Mahasiswa Login</h2>
-            <p class="login-subtitle">Masuk menggunakan NIM dan Password Siakad</p>
+      <!-- Password Field -->
+      <div class="form-field-solid">
+        <div class="field-label-row">
+          <label for="loginPassword">Password SIAKAD</label>
+          <button type="button" class="link-help-btn" @click="showHelpModal = true">
+            <i class="fas fa-question-circle"></i> Bantuan?
+          </button>
         </div>
-
-        <form @submit.prevent="submit" class="login-form">
-            <!-- NIM -->
-            <div class="field">
-                <label for="loginNim" class="field__label">NIM (Nomor Induk Mahasiswa)</label>
-                <div class="input-group input-group--lg">
-                    <span class="input-group__text">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true">
-                            <g fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M12 15a3 3 0 1 0 0-6a3 3 0 0 0 6 0Z"/>
-                                <path d="M2 12c0-3.771 0-5.657 1.172-6.828S6.229 4 10 4h4c3.771 0 5.657 0 6.828 1.172S22 8.229 22 12s0 5.657-1.172 6.828S17.771 20 14 20h-4c-3.771 0-5.657 0-6.828-1.172S2 15.771 2 12Z"/>
-                            </g>
-                        </svg>
-                    </span>
-                    <input
-                        id="loginNim"
-                        type="text"
-                        class="input"
-                        v-model="form.nim"
-                        required
-                        autofocus
-                        autocomplete="username"
-                        placeholder="Masukkan NIM Anda"
-                    />
-                </div>
-                <InputError class="form-error" :message="form.errors.nim" />
-            </div>
-
-            <!-- Password -->
-            <div class="field">
-                <div class="flex items-center justify-between gap-2">
-                    <label for="loginPasswordSiakad" class="field__label">Password Siakad</label>
-                </div>
-                <div class="input-group input-group--lg">
-                    <span class="input-group__text">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true">
-                            <g fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M2 16c0-2.828 0-4.243.879-5.121C3.757 10 5.172 10 8 10h8c2.828 0 4.243 0 5.121.879C22 11.757 22 13.172 22 16s0 4.243-.879 5.121C20.243 22 18.828 22 16 22H8c-2.828 0-4.243 0-5.121-.879C2 20.243 2 18.828 2 16Z"/>
-                                <circle cx="12" cy="16" r="2"/>
-                                <path stroke-linecap="round" d="M6 10V8a6 6 0 1 1 12 0v2"/>
-                            </g>
-                        </svg>
-                    </span>
-                    <input
-                        id="loginPasswordSiakad"
-                        :type="showPassword ? 'text' : 'password'"
-                        class="input"
-                        v-model="form.password"
-                        required
-                        autocomplete="current-password"
-                        placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;"
-                    />
-                    <button
-                        type="button"
-                        class="input-group__text--toggle"
-                        @click="togglePassword"
-                    >
-                        <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true">
-                            <g fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M3.275 15.296C2.425 14.192 2 13.639 2 12c0-1.64.425-2.191 1.275-3.296C4.972 6.5 7.818 4 12 4s7.028 2.5 8.725 4.704C21.575 9.81 22 10.361 22 12c0 1.64-.425 2.191-1.275 3.296C19.028 17.5 16.182 20 12 20s-7.028-2.5-8.725-4.704Z"/>
-                                <path d="M15 12a3 3 0 1 1-6 0a3 3 0 0 1 6 0Z"/>
-                            </g>
-                        </svg>
-                        <svg v-else xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true">
-                            <g fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M2 12c0-3.771 0-5.657 1.172-6.828S6.229 4 10 4h4c3.771 0 5.657 0 6.828 1.172S22 8.229 22 12s0 5.657-1.172 6.828S17.771 20 14 20h-4c-3.771 0-5.657 0-6.828-1.172S2 15.771 2 12Z"/>
-                                <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0-6 0Z"/>
-                            </g>
-                        </svg>
-                    </button>
-                </div>
-                <InputError class="form-error" :message="form.errors.password" />
-            </div>
-
-            <button
-                type="submit"
-                class="button--primary login-submit"
-                :class="{ 'opacity-25': form.processing }"
-                :disabled="form.processing"
-            >
-                {{ form.processing ? 'Memproses...' : 'Masuk' }}
-                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true">
-                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 12h16m0 0l-6-6m6 6l-6 6"/>
-                </svg>
-            </button>
-        </form>
-
-        <div class="login-footer">
-            <span>Belum punya akun? Hubungi bagian administrasi.</span>
+        <div class="input-control-wrap" :class="{ 'has-error': form.errors.password }">
+          <span class="input-icon"><i class="fas fa-lock"></i></span>
+          <input
+            id="loginPassword"
+            :type="showPassword ? 'text' : 'password'"
+            class="input-native"
+            v-model="form.password"
+            required
+            autocomplete="current-password"
+            placeholder="Masukkan Password SIAKAD"
+          />
+          <button
+            type="button"
+            class="input-toggle-btn"
+            @click="togglePassword"
+            :title="showPassword ? 'Sembunyikan password' : 'Lihat password'"
+          >
+            <i class="fas" :class="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+          </button>
         </div>
-    </GuestLayout>
+        <InputError class="field-error-msg" :message="form.errors.password" />
+      </div>
+
+      <!-- Submit Button -->
+      <button
+        type="submit"
+        class="btn-submit-solid"
+        :disabled="form.processing"
+      >
+        <i class="fas" :class="form.processing ? 'fa-spinner fa-pulse' : 'fa-sign-in-alt'"></i>
+        <span>{{ form.processing ? 'Memverifikasi ke SIAKAD...' : 'Masuk Sekarang' }}</span>
+      </button>
+    </form>
+
+    <!-- Modal Bantuan Login (Teleported) -->
+    <Teleport to="body">
+      <div v-if="showHelpModal" class="modal-overlay" @click.self="showHelpModal = false">
+        <div class="modal-box">
+          <div class="modal-header">
+            <h3><i class="fas fa-headset text-primary"></i> Bantuan Login Mahasiswa</h3>
+            <button type="button" class="modal-close" @click="showHelpModal = false"><i class="fas fa-times"></i></button>
+          </div>
+          <div class="modal-body">
+            <div class="help-info-card">
+              <h4><i class="fas fa-key"></i> Lupa Password SIAKAD?</h4>
+              <p>Password yang digunakan pada portal UKT sama persis dengan password login <strong>SIAKAD</strong> Anda. Jika Anda lupa password, silakan lakukan reset melalui portal SIAKAD resmi atau hubungi Pusat Teknologi Informasi &amp; Komunikasi (PTIK) kampus.</p>
+            </div>
+
+            <div class="help-info-card" style="margin-top:0.75rem;">
+              <h4><i class="fas fa-phone-alt"></i> Layanan BAAK &amp; Keuangan:</h4>
+              <ul class="help-contact-list">
+                <li><i class="fas fa-phone"></i> Telepon: <strong>{{ institutionPhone }}</strong></li>
+                <li><i class="fas fa-envelope"></i> Email: <strong>{{ institutionEmail }}</strong></li>
+                <li><i class="fas fa-clock"></i> Jam Pelayanan: <strong>Senin - Jumat (08.00 - 16.00 WITA)</strong></li>
+              </ul>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-modal-close" @click="showHelpModal = false">Tutup</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+  </GuestLayout>
 </template>
 
 <style scoped>
-/* ============================================
-   LOGIN FORM - ELEGANT
-   ============================================ */
-.login-head {
-    text-align: center;
-    margin-bottom: 0.25rem;
-}
-.login-brand {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 1.25rem;
-    border-radius: 1.25rem;
-    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 55%, #818cf8 100%);
-    color: white;
-    font-size: 1.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 12px 28px -6px rgba(79, 70, 229, 0.45);
-}
-.login-brand.has-logo {
-    background: transparent;
-    box-shadow: none;
-}
-.login-brand-img {
-    width: 64px;
-    height: 64px;
-    object-fit: contain;
-}
-.login-title {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #1e1b4b;
-    margin: 0;
-    letter-spacing: -0.02em;
-}
-.login-subtitle {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin: 0.375rem 0 0;
+/* Header */
+.auth-header {
+  text-align: center;
+  margin-bottom: 1.25rem;
 }
 
-.login-form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+.auth-brand-logo-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 0.875rem;
 }
 
-/* Refined inputs */
-.login-form :deep(.input-group--lg .input) {
-    border: 1.5px solid #e2e8f0 !important;
-    border-radius: 0.75rem !important;
-    padding: 0.75rem 2.75rem 0.75rem 2.75rem !important;
-    background: #f8fafc !important;
-    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s !important;
-}
-.login-form :deep(.input-group--lg .input:focus) {
-    outline: none;
-    border-color: #6366f1;
-    background: #ffffff;
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.14);
-}
-.login-form :deep(.input-group) {
-    position: relative !important;
-    display: flex !important;
-    align-items: center !important;
+.auth-brand-logo-img {
+  max-height: 56px;
+  max-width: 180px;
+  object-fit: contain;
 }
 
-.login-form :deep(.input-group__text:not(.input-group__text--toggle)) {
-    position: absolute !important;
-    left: 0rem !important;
-    top: 0 !important;
-    bottom: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 2.75rem !important;
-    height: 100% !important;
-    color: #9ca3af !important;
-    pointer-events: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  border-radius: 9999px;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.75rem;
 }
 
-.login-form :deep(.input-group__text--toggle) {
-    position: absolute !important;
-    right: 0 !important;
-    left: auto !important;
-    top: 0 !important;
-    bottom: 0 !important;
-    transform: none !important;
-    width: 2.75rem !important;
-    height: 100% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    pointer-events: auto !important;
-    cursor: pointer !important;
-    background: none !important;
-    border: none !important;
-    padding: 0 !important;
-    color: #9ca3af !important;
-    z-index: 999 !important;
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  background: #2563eb;
+  border-radius: 50%;
 }
 
-/* Elegant submit button */
-.login-submit {
-    margin-top: 0.75rem;
-    padding: 0.875rem 1.5rem;
-    border-radius: 0.75rem;
-    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-    box-shadow: 0 10px 24px -8px rgba(79, 70, 229, 0.5);
-    font-weight: 700;
-    letter-spacing: 0.01em;
-}
-.login-submit:hover {
-    background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
-    box-shadow: 0 14px 30px -8px rgba(79, 70, 229, 0.55);
-    transform: translateY(-1px);
-}
-.login-submit:active {
-    transform: translateY(0);
-}
-.login-submit:disabled {
-    opacity: 0.6;
-    box-shadow: none;
-    transform: none;
+.auth-title {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 0.375rem;
+  letter-spacing: -0.02em;
 }
 
-.login-footer {
-    margin-top: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.875rem;
-    font-size: 0.8125rem;
-    color: #9ca3af;
+.auth-subtitle {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
 }
-.admin-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1.25rem;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 2rem;
-    color: #4f46e5;
-    font-weight: 600;
-    background: #fafafa;
-    transition: all 0.2s;
-    text-decoration: none;
+
+/* Alert Box */
+.alert-status-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
-.admin-link:hover {
-    border-color: #6366f1;
-    background: #eef2ff;
-    text-decoration: none;
+
+/* SIAKAD Notice Box */
+.siakad-notice-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.625rem;
+  padding: 0.75rem 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+.notice-icon {
+  width: 32px;
+  height: 32px;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.notice-text strong {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.125rem;
+}
+
+.notice-text p {
+  margin: 0;
+  font-size: 0.6875rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+/* Form Fields */
+.auth-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+.form-field-solid label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.375rem;
+}
+
+.field-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.375rem;
+}
+
+.field-label-row label {
+  margin-bottom: 0;
+}
+
+.link-help-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.link-help-btn:hover {
+  text-decoration: underline;
+  color: #1d4ed8;
+}
+
+.input-control-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 0.875rem;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+
+.input-native {
+  width: 100%;
+  padding: 0.625rem 2.5rem 0.625rem 2.375rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: #0f172a;
+  background: #ffffff;
+  outline: none;
+  transition: all 0.15s ease-in-out;
+}
+
+.input-native:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.input-control-wrap.has-error .input-native {
+  border-color: #dc2626;
+}
+
+.input-toggle-btn {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.input-toggle-btn:hover {
+  color: #475569;
+}
+
+.field-error-msg {
+  font-size: 0.75rem;
+  color: #dc2626;
+  margin-top: 0.25rem;
+}
+
+/* Submit Button */
+.btn-submit-solid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6875rem 1rem;
+  background: #2563eb;
+  color: #ffffff;
+  border: 1px solid #2563eb;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  margin-top: 0.5rem;
+}
+
+.btn-submit-solid:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+}
+
+.btn-submit-solid:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal-box {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 1.25rem;
+}
+
+.help-info-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.875rem 1rem;
+}
+
+.help-info-card h4 {
+  margin: 0 0 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.help-info-card p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.help-contact-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: #334155;
+}
+
+.help-contact-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.help-contact-list i {
+  color: #2563eb;
+  width: 14px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-bottom-left-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+}
+
+.btn-modal-close {
+  padding: 0.4375rem 0.875rem;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+}
+
+.btn-modal-close:hover {
+  background: #f1f5f9;
 }
 </style>

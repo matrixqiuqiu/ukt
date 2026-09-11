@@ -829,3 +829,292 @@ body { font-family: 'Nunito', 'Inter', sans-serif; margin: 0; padding: 0; backgr
     color: var(--gray-400);
     opacity: 1;
 }
+
+/* ============================================
+   GLOBAL PRINT STYLES (window.print())
+   ============================================ */
+@media print {
+    /* Sembunyikan elemen non-cetak */
+    .no-print,
+    .sidebar,
+    aside.sidebar,
+    .sidebar--app,
+    .navbar,
+    header.navbar,
+    .bottom-nav,
+    .content__header,
+    .sidebar__footer,
+    .toast-container,
+    .menu__popup,
+    button,
+    [data-stisla-toast],
+    nav {
+        display: none !important;
+    }
+
+    /* Reset Root & Body */
+    html,
+    body {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        min-height: auto !important;
+        height: auto !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Reset Layout Shells & Containers */
+    .app-shell,
+    .app-shell__main,
+    .content,
+    .page.content,
+    .page-body,
+    .container-xl,
+    .container,
+    .invoice-container-wrapper {
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: auto !important;
+        box-shadow: none !important;
+        border: none !important;
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        position: static !important;
+        overflow: visible !important;
+    }
+
+    /* Dokumen Faktur / Invoice Paper */
+    .invoice-paper {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 10mm !important;
+        margin: 0 auto !important;
+        box-sizing: border-box !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+    }
+
+    /* Kop Surat */
+    .invoice-kop-surat {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: flex-start !important;
+        gap: 1.5rem !important;
+    }
+
+    .kop-left {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 1.25rem !important;
+        flex: 1 !important;
+    }
+
+    .kop-right {
+        text-align: right !important;
+        flex-shrink: 0 !important;
+    }
+
+    .divider-thick {
+        background: #0f172a !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .divider-thin {
+        background: #cbd5e1 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Title & Status Bar */
+    .invoice-title-bar {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    /* Grid Metadata Mahasiswa & Tagihan */
+    .invoice-meta-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 1rem !important;
+        margin-bottom: 1.25rem !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    .meta-box {
+        border: 1px solid #cbd5e1 !important;
+        background: #ffffff !important;
+    }
+
+    .meta-box-header {
+        background: #f1f5f9 !important;
+        border-bottom: 1px solid #cbd5e1 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Tabel Rincian */
+    .invoice-table-section {
+        margin-bottom: 1.25rem !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    .invoice-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+
+    .invoice-table thead th {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .invoice-table tbody td {
+        border: 1px solid #cbd5e1 !important;
+    }
+
+    .tfoot-subtotal td {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .tfoot-grandtotal td {
+        background: #f1f5f9 !important;
+        border: 1px solid #cbd5e1 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Bank Gateway Card */
+    .invoice-bank-card {
+        background: #eff6ff !important;
+        border: 1px solid #bfdbfe !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    /* Blok Verifikasi & Tanda Tangan Digital */
+    .invoice-verification-section {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: flex-start !important;
+        gap: 0.75rem !important;
+        padding: 0.75rem 0.875rem !important;
+        margin-bottom: 0.875rem !important;
+        border: 1px dashed #94a3b8 !important;
+        background: #fafafa !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        box-sizing: border-box !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+    }
+
+    .verify-qr-col {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: flex-start !important;
+        gap: 0.75rem !important;
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
+        max-width: calc(100% - 190px) !important;
+        overflow: hidden !important;
+    }
+
+    .qr-box {
+        flex-shrink: 0 !important;
+        width: 68px !important;
+    }
+
+    .qr-img, .qr-placeholder {
+        width: 64px !important;
+        height: 64px !important;
+    }
+
+    .qr-label {
+        font-size: 0.58rem !important;
+    }
+
+    .qr-desc-box {
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+    }
+
+    .qr-auth-title {
+        font-size: 0.6875rem !important;
+        margin-bottom: 0.2rem !important;
+    }
+
+    .qr-auth-desc {
+        font-size: 0.6875rem !important;
+        line-height: 1.25 !important;
+        margin: 0 0 0.2rem !important;
+    }
+
+    .qr-auth-link {
+        font-size: 0.625rem !important;
+        word-break: break-all !important;
+        overflow-wrap: anywhere !important;
+        white-space: normal !important;
+        display: block !important;
+        max-width: 100% !important;
+    }
+
+    .signature-col {
+        width: 180px !important;
+        flex-shrink: 0 !important;
+        text-align: center !important;
+        margin: 0 !important;
+    }
+
+    .digital-stamp {
+        background: rgba(16, 185, 129, 0.08) !important;
+        border: 2px dashed #059669 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .solid-badge {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    @page {
+        size: A4 portrait;
+        margin: 12mm 15mm 12mm 15mm;
+    }
+}
+

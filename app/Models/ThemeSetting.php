@@ -38,6 +38,33 @@ class ThemeSetting extends Model
         'website_footer_text',
     ];
 
+    protected $appends = [
+        'logo_url',
+        'header_image_url',
+    ];
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        if (empty($this->invoice_logo)) {
+            return null;
+        }
+        if (str_starts_with($this->invoice_logo, 'http://') || str_starts_with($this->invoice_logo, 'https://')) {
+            return $this->invoice_logo;
+        }
+        return asset(ltrim($this->invoice_logo, '/'));
+    }
+
+    public function getHeaderImageUrlAttribute(): ?string
+    {
+        if (empty($this->invoice_header_image)) {
+            return null;
+        }
+        if (str_starts_with($this->invoice_header_image, 'http://') || str_starts_with($this->invoice_header_image, 'https://')) {
+            return $this->invoice_header_image;
+        }
+        return asset(ltrim($this->invoice_header_image, '/'));
+    }
+
     public static function instance(): static
     {
         $setting = static::first();

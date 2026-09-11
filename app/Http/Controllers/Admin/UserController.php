@@ -13,7 +13,12 @@ class UserController extends Controller
 {
     public function index(Request $request): Response
     {
+        $role = $request->input('role', 'admin');
         $query = User::query();
+
+        if ($role && $role !== 'all') {
+            $query->where('role', $role);
+        }
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -23,15 +28,21 @@ class UserController extends Controller
             });
         }
 
-        if ($request->filled('role')) {
-            $query->where('role', $request->role);
-        }
-
         $users = $query->latest()->paginate(15)->withQueryString();
+
+        $counts = [
+            'admin' => User::where('role', 'admin')->count(),
+            'mahasiswa' => User::where('role', 'mahasiswa')->count(),
+            'total' => User::count(),
+        ];
 
         return Inertia::render('Admin/User/Index', [
             'users' => $users,
-            'filters' => $request->only(['search', 'role']),
+            'filters' => [
+                'search' => $request->search ?? '',
+                'role' => $role,
+            ],
+            'counts' => $counts,
         ]);
     }
 
@@ -41,18 +52,18 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
-            'role' => ['required', 'in:admin,mahasiswa'],
+            'role' => ['nullable', 'in:admin'],
         ]);
 
         User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'role' => $validated['role'],
+            'role' => 'admin',
             'email_verified_at' => now(),
         ]);
 
-        return back()->with('success', 'User "' . $validated['name'] . '" berhasil ditambahkan.');
+        return back()->with('success', 'Akun Administrator "' . $validated['name'] . '" berhasil ditambahkan.');
     }
 
     public function update(Request $request, int $id)
@@ -62,14 +73,12 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'role' => ['required', 'in:admin,mahasiswa'],
             'password' => ['nullable', 'string', 'min:8'],
         ]);
 
         $data = [
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'role' => $validated['role'],
         ];
 
         if (!empty($validated['password'])) {
@@ -78,7 +87,7 @@ class UserController extends Controller
 
         $user->update($data);
 
-        return back()->with('success', 'User "' . $validated['name'] . '" berhasil diperbarui.');
+        return back()->with('success', 'Data user "' . $validated['name'] . '" berhasil diperbarui.');
     }
 
     public function destroy(Request $request, int $id)
@@ -86,12 +95,12 @@ class UserController extends Controller
         $user = User::findOrFail($id);
 
         if ($user->id === $request->user()->id) {
-            return back()->with('error', 'Tidak dapat menghapus akun yang sedang digunakan.');
+            return back()->with('error', 'Tidak dapat menghapus akun yang sedang Anda gunakan.');
         }
 
         // Cegah menghapus admin terakhir
         if ($user->role === 'admin' && User::where('role', 'admin')->count() <= 1) {
-            return back()->with('error', 'Tidak dapat menghapus admin terakhir.');
+            return back()->with('error', 'Tidak dapat menghapus admin terakhir sistem.');
         }
 
         $user->delete();
@@ -99,3 +108,4 @@ class UserController extends Controller
         return back()->with('success', 'User "' . $user->name . '" berhasil dihapus.');
     }
 }
+

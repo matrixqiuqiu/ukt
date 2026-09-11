@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Mahasiswa;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
  use Inertia\Response;
@@ -16,37 +17,46 @@ class ProfileController extends Controller
         $nim = $user->getNimAttribute();
         $mahasiswa = $nim ? Mahasiswa::where('nim', $nim)->first() : null;
 
-        // Fetch fresh data from Siakad API
+        // Fetch fresh data from Siakad API (cached 1 hour to avoid slow page loads)
         if ($nim && $mahasiswa) {
-            try {
-                $profileUrl = config('services.siakad.mahasiswa_nim', env('BASE_API_SIAKAD_MAHASISWA_NIM'));
-                $response = Http::withHeaders([
-                    'Accept' => 'application/json',
-                ])->get($profileUrl, ['nim' => $nim]);
+            $cacheKey = "siakad_profile_{$nim}";
 
-                $body = $response->json();
-                $data = $body['data'] ?? null;
+            // Only call the API if the cache has expired
+            if (!Cache::has($cacheKey)) {
+                try {
+                    $profileUrl = config('services.siakad.mahasiswa_nim', env('BASE_API_SIAKAD_MAHASISWA_NIM'));
+                    $response = Http::timeout(5)->withHeaders([
+                        'Accept' => 'application/json',
+                    ])->get($profileUrl, ['nim' => $nim]);
 
-                if ($data) {
-                    $nama = $data['nama_mahasiswa'] ?? $data['nama'] ?? null;
-                    $prodi = $data['nama_prodi'] ?? null;
-                    $jurusan = is_array($prodi) ? ($prodi['nama_program_studi'] ?? null) : ($data['jurusan'] ?? null);
+                    $body = $response->json();
+                    $data = $body['data'] ?? null;
 
-                    $updates = [];
-                    if ($nama) $updates['nama_lengkap'] = $nama;
-                    if ($jurusan) $updates['jurusan'] = $jurusan;
+                    if ($data) {
+                        // Cache the result for 1 hour
+                        Cache::put($cacheKey, $data, now()->addHour());
 
-                    if (!empty($updates)) {
-                        $mahasiswa->update($updates);
+                        $nama = $data['nama_mahasiswa'] ?? $data['nama'] ?? null;
+                        $prodi = $data['nama_prodi'] ?? null;
+                        $jurusan = is_array($prodi) ? ($prodi['nama_program_studi'] ?? null) : ($data['jurusan'] ?? null);
+
+                        $updates = [];
+                        if ($nama) $updates['nama_lengkap'] = $nama;
+                        if ($jurusan) $updates['jurusan'] = $jurusan;
+
+                        if (!empty($updates)) {
+                            $mahasiswa->update($updates);
+                        }
+
+                        // Sync user name too
+                        if ($nama && $user->name !== $nama) {
+                            $user->update(['name' => $nama]);
+                        }
                     }
-
-                    // Sync user name too
-                    if ($nama && $user->name !== $nama) {
-                        $user->update(['name' => $nama]);
-                    }
+                } catch (\Exception $e) {
+                    // Non-critical — set a short cache to avoid hammering the API on errors
+                    Cache::put($cacheKey, null, now()->addMinutes(5));
                 }
-            } catch (\Exception $e) {
-                // Non-critical, continue with local data
             }
         }
 
@@ -55,3 +65,4 @@ class ProfileController extends Controller
         ]);
     }
 }
+

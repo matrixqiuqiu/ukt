@@ -4,204 +4,500 @@
     <meta charset="utf-8">
     <title>{{ $data['document_title'] }}</title>
     <style>
-        @page { size: A4; margin: 18mm 14mm 18mm 14mm; }
+        @page {
+            size: A4 portrait;
+            margin: 12mm 14mm 10mm 14mm;
+        }
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 11px;
-            color: {{ $data['colors']['content_text'] }};
-            margin: 0; padding: 0;
-            line-height: 1.5;
+            font-size: 10px;
+            color: #0f172a;
+            margin: 0;
+            padding: 0;
+            line-height: 1.4;
+            background: #ffffff;
         }
-        .kop {
-            border-bottom: 3px solid {{ $data['colors']['primary'] }};
-            padding-bottom: 10px;
-            margin-bottom: 14px;
+
+        /* Kop Surat */
+        .kop-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
         }
-        .kop-nama { font-size: 17px; font-weight: 800; margin-bottom: 2px; letter-spacing: -0.02em; }
-        .kop-meta { color: #64748b; font-size: 9.5px; line-height: 1.4; }
-        .kop-logo { width: 56px; height: 56px; object-fit: contain; }
-        .title-block { margin-bottom: 14px; }
-        .judul { font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
-        .judul-sub { color: #64748b; font-size: 9.5px; }
-        .badge { display:inline-block; padding:4px 14px; border-radius:9999px; color:#fff; font-size:10px; font-weight:800; letter-spacing:0.04em; text-transform:uppercase; }
-        .box {
-            border: 1px solid {{ $data['colors']['card_border'] }};
-            background: #fff;
-            border-radius: 8px;
-            padding: 12px 14px;
+        .kop-logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+        .kop-name {
+            font-size: 15px;
+            font-weight: bold;
+            color: #0f172a;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+        .kop-sub {
+            font-size: 8.5px;
+            font-weight: bold;
+            color: #4338ca;
+            letter-spacing: 0.04em;
+            margin-bottom: 3px;
+        }
+        .kop-meta {
+            font-size: 8px;
+            color: #475569;
+            line-height: 1.35;
+        }
+        .kop-divider-thick {
+            height: 2.5px;
+            background: #0f172a;
+            margin-top: 6px;
+        }
+        .kop-divider-thin {
+            height: 0.75px;
+            background: #94a3b8;
+            margin-top: 1.5px;
             margin-bottom: 12px;
         }
-        .box-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; margin-bottom:8px; }
-        table.detail {
-            width: 100%; border-collapse: collapse; margin-bottom: 12px;
+
+        /* Title & Status Bar */
+        .title-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            margin-bottom: 12px;
         }
-        table.detail th {
-            text-align: left; background: #f1f5f9; padding: 7px 10px; border: 1px solid {{ $data['colors']['card_border'] }};
-            font-size: 9.5px; text-transform: uppercase; letter-spacing:0.05em; color:#334155;
+        .title-table td {
+            padding: 8px 12px;
         }
-        table.detail td {
-            padding: 7px 10px; border: 1px solid {{ $data['colors']['card_border'] }};
+        .doc-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #0f172a;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
         }
-        table.detail tr:nth-child(even) td { background:#f8fafc; }
-        .amount { font-weight:800; font-size: 12px; color: #0f172a; }
-        .instruksi {
-            border: 1px dashed #94a3b8; background: {{ $data['colors']['card_bg'] }};
-            padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; line-height: 1.6; font-size:10px;
+        .doc-subtitle {
+            font-size: 8.5px;
+            font-weight: bold;
+            color: #475569;
+            margin-top: 2px;
         }
-        .verify {
-            border: 1.5px solid {{ $data['colors']['primary'] }};
-            border-radius: 10px; padding: 12px; margin-top: 16px; background:#f8fafc;
+        .badge-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            color: #ffffff;
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
-        .verify-qr { width: 88px; height: 88px; }
-        .verify-url { font-size: 7.5px; color:#475569; word-break:break-all; line-height:1.3; }
-        .verify-label { font-size:8px; text-transform:uppercase; letter-spacing:0.08em; color:#64748b; font-weight:700; margin-bottom:4px; }
-        .sig-line { border-top: 1px solid #334155; width: 160px; margin-top: 48px; padding-top:6px; font-size:10px; text-align:center; color:#334155; }
-        .footer {
-            text-align: center; color: #94a3b8; font-size: 8px; margin-top: 18px; border-top:1px solid #e2e8f0; padding-top:8px;
+
+        /* 2-Column Info Grid Table */
+        .info-grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
         }
-        .mono { font-family: DejaVu Sans Mono, monospace; }
+        .info-grid-table > tbody > tr > td {
+            width: 50%;
+            vertical-align: top;
+        }
+        .info-card {
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+        }
+        .info-card-header {
+            background: #f1f5f9;
+            padding: 5px 10px;
+            font-size: 8.5px;
+            font-weight: bold;
+            color: #1e293b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #cbd5e1;
+        }
+        .info-card-body {
+            padding: 8px 10px;
+        }
+        .info-row-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .info-row-table td {
+            padding: 2.5px 0;
+            font-size: 8.5px;
+        }
+        .label-col {
+            width: 40%;
+            color: #64748b;
+            font-weight: normal;
+        }
+        .val-col {
+            width: 60%;
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        /* Itemized Breakdown Table */
+        .item-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+        }
+        .item-table th {
+            background: #f1f5f9;
+            color: #1e293b;
+            font-size: 8.5px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 6px 10px;
+            border: 1px solid #cbd5e1;
+            text-align: left;
+        }
+        .item-table td {
+            padding: 7px 10px;
+            border: 1px solid #cbd5e1;
+            font-size: 9px;
+            vertical-align: middle;
+        }
+        .item-table tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+        .tfoot-subtotal td {
+            background: #f8fafc;
+            font-weight: bold;
+            font-size: 9px;
+        }
+        .tfoot-total td {
+            background: #e2e8f0;
+            font-weight: bold;
+            font-size: 10.5px;
+            color: #0f172a;
+        }
+
+        /* Payment Channel Box */
+        .gateway-box {
+            border: 1px solid #93c5fd;
+            background: #eff6ff;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            font-size: 8.5px;
+            color: #1e3a8a;
+        }
+        .gateway-title {
+            font-size: 9px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 2px;
+        }
+
+        /* Verification & Signatures Table */
+        .verify-sig-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px dashed #94a3b8;
+            background: #fafafa;
+            margin-bottom: 10px;
+            table-layout: fixed;
+        }
+        .verify-sig-table td {
+            padding: 8px 10px;
+            vertical-align: top;
+            overflow: hidden;
+        }
+        .qr-img {
+            width: 72px;
+            height: 72px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            padding: 2px;
+        }
+        .verify-label {
+            font-size: 8px;
+            font-weight: bold;
+            color: #0f172a;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 2px;
+        }
+        .verify-desc {
+            font-size: 7.5px;
+            color: #475569;
+            line-height: 1.3;
+            margin-bottom: 3px;
+        }
+        .verify-url {
+            font-size: 6.5px;
+            color: #2563eb;
+            font-family: DejaVu Sans Mono, monospace;
+            word-break: break-all;
+            word-wrap: break-word;
+            line-height: 1.25;
+            display: block;
+        }
+        .verify-meta {
+            font-size: 6.5px;
+            color: #64748b;
+            font-family: DejaVu Sans Mono, monospace;
+            margin-top: 3px;
+        }
+
+        /* Signature Column */
+        .sig-box {
+            text-align: center;
+        }
+        .sig-date {
+            font-size: 8.5px;
+            color: #475569;
+            margin-bottom: 2px;
+        }
+        .sig-title {
+            font-size: 9px;
+            font-weight: bold;
+            color: #0f172a;
+        }
+        .stamp-badge {
+            display: inline-block;
+            border: 1.5px dashed #059669;
+            background: #f0fdf4;
+            color: #065f46;
+            padding: 3px 8px;
+            margin: 6px 0;
+            font-size: 7.5px;
+            font-weight: bold;
+            letter-spacing: 0.04em;
+        }
+        .sig-line {
+            border-top: 1px solid #334155;
+            width: 140px;
+            margin: 6px auto 0;
+            padding-top: 3px;
+            font-size: 8px;
+            font-weight: bold;
+            color: #334155;
+        }
+
+        /* Footer */
+        .footer-note {
+            text-align: center;
+            font-size: 7.5px;
+            color: #94a3b8;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 6px;
+            line-height: 1.4;
+        }
+
+        .mono {
+            font-family: DejaVu Sans Mono, monospace;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .text-center {
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-    {{-- Kop Surat --}}
-    <table class="kop" width="100%">
+    <!-- KOP SURAT RESMI -->
+    <table class="kop-table">
         <tr>
-            <td width="68">
+            <td width="65" valign="middle">
                 @if (!empty($data['logo_url']))
                     <img class="kop-logo" src="{{ $data['logo_url'] }}" alt="Logo" />
                 @endif
             </td>
-            <td>
-                <div class="kop-nama">{{ $data['institution']['name'] }}</div>
+            <td valign="middle" style="padding-left: 8px;">
+                <div class="kop-name">{{ $data['institution']['name'] }}</div>
+                <div class="kop-sub">BAGIAN KEUANGAN & ADMINISTRASI AKADEMIK (UKT ONLINE)</div>
                 <div class="kop-meta">{{ $data['institution']['address'] }}</div>
-                <div class="kop-meta">Tel: {{ $data['institution']['phone'] ?: '-' }} &nbsp;|&nbsp; Email: {{ $data['institution']['email'] ?: '-' }} &nbsp;|&nbsp; Web: {{ $data['institution']['website'] }}</div>
+                <div class="kop-meta">Telp: {{ $data['institution']['phone'] ?: '(0370) 638369' }} &nbsp;|&nbsp; Email: {{ $data['institution']['email'] ?: 'keuangan@ubg.ac.id' }} &nbsp;|&nbsp; Web: {{ $data['institution']['website'] }}</div>
             </td>
-            <td width="160" align="right" valign="top">
-                <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">No. Dokumen</div>
-                <div class="mono" style="font-size:10px;font-weight:700;">{{ $data['invoice_number'] }}</div>
-                <div style="font-size:8px;color:#64748b;margin-top:2px;">{{ $data['invoice_date_label'] }}</div>
+            <td width="150" align="right" valign="top">
+                <div style="font-size: 7.5px; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; font-weight: bold;">NO. DOKUMEN</div>
+                <div class="mono" style="font-size: 9.5px; font-weight: bold; color: #0f172a; margin-top: 2px;">{{ $data['invoice_number'] }}</div>
+                <div style="font-size: 7.5px; color: #64748b; margin-top: 2px;">Tgl Terbit: {{ $data['invoice_date_label'] }}</div>
             </td>
         </tr>
     </table>
 
-    {{-- Judul & Status --}}
-    <table width="100%" class="title-block">
+    <div class="kop-divider-thick"></div>
+    <div class="kop-divider-thin"></div>
+
+    <!-- JUDUL & STATUS DOKUMEN -->
+    <table class="title-table">
         <tr>
             <td>
-                <div class="judul">Bukti Pembayaran UKT</div>
-                <div class="judul-sub">{{ $data['item']['description'] }}
-                    @if(!empty($data['item']['meta'])) &middot; {{ implode(' · ', $data['item']['meta']) }} @endif
+                <div class="doc-title">Bukti Pembayaran Uang Kuliah Tunggal</div>
+                <div class="doc-subtitle">{{ $data['item']['description'] }} @if(!empty($data['item']['meta'])) &bull; {{ implode(' · ', $data['item']['meta']) }} @endif</div>
+            </td>
+            <td align="right" width="160">
+                <span class="badge-status" style="background: {{ $data['status_color'] }};">{{ $data['status_label'] }}</span>
+            </td>
+        </tr>
+    </table>
+
+    <!-- 2 KOLOM IDENTITAS MAHASISWA & TRANSAKSI -->
+    <table class="info-grid-table">
+        <tr>
+            <!-- Left: Data Mahasiswa -->
+            <td style="padding-right: 6px;">
+                <div class="info-card">
+                    <div class="info-card-header">DATA MAHASISWA</div>
+                    <div class="info-card-body">
+                        <table class="info-row-table">
+                            <tr>
+                                <td class="label-col">Nama Lengkap</td>
+                                <td class="val-col">{{ $data['student']['name'] }}</td>
+                            </tr>
+                            <tr>
+                                <td class="label-col">NIM</td>
+                                <td class="val-col mono">{{ $data['student']['nim'] }}</td>
+                            </tr>
+                            <tr>
+                                <td class="label-col">Program Studi</td>
+                                <td class="val-col">{{ $data['student']['program_studi'] ?: $data['student']['jurusan'] }}</td>
+                            </tr>
+                            <tr>
+                                <td class="label-col">Angkatan</td>
+                                <td class="val-col">{{ $data['student']['angkatan'] ?: '-' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="label-col">Email</td>
+                                <td class="val-col" style="font-size:8px;">{{ $data['student']['email'] ?: '-' }}</td>
+                            </tr>
+                        </table>
+                    </div>
                 </div>
             </td>
-            <td align="right" valign="top">
-                <span class="badge" style="background: {{ $data['status_color'] }};">{{ $data['status_label'] }}</span>
+
+            <!-- Right: Data Pembayaran -->
+            <td style="padding-left: 6px;">
+                <div class="info-card">
+                    <div class="info-card-header">INFORMASI PEMBAYARAN</div>
+                    <div class="info-card-body">
+                        <table class="info-row-table">
+                            <tr>
+                                <td class="label-col">No. Referensi</td>
+                                <td class="val-col mono">#{{ $data['payment']['reference_no'] }}</td>
+                            </tr>
+                            <tr>
+                                <td class="label-col">Metode Pembayaran</td>
+                                <td class="val-col">{{ $data['payment']['method'] }}</td>
+                            </tr>
+                            <tr>
+                                <td class="label-col">No. Virtual Account</td>
+                                <td class="val-col mono">{{ $data['payment']['va_number'] ?: '-' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="label-col">Waktu Bayar / Valid</td>
+                                <td class="val-col">{{ $data['payment']['paid_at_label'] }}</td>
+                            </tr>
+                            <tr>
+                                <td class="label-col">Status Transaksi</td>
+                                <td class="val-col" style="color: {{ $data['status_color'] }};">{{ $data['status_label'] }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
             </td>
         </tr>
     </table>
 
-    {{-- Info Mahasiswa --}}
-    <div class="box">
-        <div class="box-title">Data Mahasiswa</div>
-        <table width="100%">
+    <!-- TABEL RINCIAN ITEM PEMBAYARAN -->
+    <table class="item-table">
+        <thead>
             <tr>
-                <td width="50%" style="padding:3px 0;">Nama: <strong>{{ $data['student']['name'] }}</strong></td>
-                <td style="padding:3px 0;">NIM: <strong class="mono">{{ $data['student']['nim'] }}</strong></td>
+                <th width="5%" class="text-center">No</th>
+                <th width="55%">Uraian Pembayaran</th>
+                <th width="20%" class="text-center">Periode / Semester</th>
+                <th width="20%" class="text-right">Jumlah (Rp)</th>
             </tr>
+        </thead>
+        <tbody>
             <tr>
-                <td style="padding:3px 0;">Program Studi: <strong>{{ $data['student']['program_studi'] }}</strong></td>
-                <td style="padding:3px 0;">Angkatan: <strong>{{ $data['student']['angkatan'] }}</strong></td>
+                <td class="text-center" style="font-weight: bold; color: #64748b;">1</td>
+                <td>
+                    <div style="font-weight: bold; color: #0f172a;">{{ $data['item']['description'] }}</div>
+                    <div style="font-size: 7.5px; color: #64748b; margin-top: 1px;">Biaya kuliah tunggal semester mahasiswa aktif program akademik</div>
+                </td>
+                <td class="text-center" style="font-weight: bold; color: #334155;">
+                    @if(!empty($data['item']['meta']))
+                        {{ implode(', ', $data['item']['meta']) }}
+                    @else
+                        -
+                    @endif
+                </td>
+                <td class="text-right mono" style="font-weight: bold; font-size: 9.5px; color: #0f172a;">
+                    {{ $data['item']['amount_label'] }}
+                </td>
             </tr>
-            <tr>
-                <td style="padding:3px 0;">Email: <span class="mono" style="font-size:10px;">{{ $data['student']['email'] ?: '-' }}</span></td>
-                <td style="padding:3px 0;">Jurusan: <strong>{{ $data['student']['jurusan'] }}</strong></td>
+        </tbody>
+        <tfoot>
+            <tr class="tfoot-subtotal">
+                <td colspan="3" class="text-right">Subtotal Tagihan:</td>
+                <td class="text-right mono">{{ $data['subtotal_label'] }}</td>
             </tr>
-        </table>
-    </div>
-
-    {{-- Detail Pembayaran --}}
-    <table class="detail">
-        <tr>
-            <th width="32%">Uraian</th>
-            <th>Detail</th>
-        </tr>
-        <tr>
-            <td>Deskripsi Tagihan</td>
-            <td><strong>{{ $data['item']['description'] }}</strong><br><span style="font-size:9px;color:#64748b;">{{ implode(' · ', $data['item']['meta']) }}</span></td>
-        </tr>
-        <tr>
-            <td>Nominal UKT</td>
-            <td class="amount">{{ $data['item']['amount_label'] }}</td>
-        </tr>
-        <tr>
-            <td>Metode Pembayaran</td>
-            <td>
-                @php
-                    $bankLogo = $data['payment']['method_logo'] ?? '';
-                    $bankLogoSrc = '';
-                    if (str_starts_with($bankLogo, 'data:')) {
-                        $bankLogoSrc = $bankLogo;
-                    } elseif (str_starts_with($bankLogo, '/storage/') || str_starts_with($bankLogo, 'storage/')) {
-                        $path = public_path(ltrim($bankLogo, '/'));
-                        if (is_file($path)) {
-                            $ext = pathinfo($path, PATHINFO_EXTENSION) ?: 'png';
-                            $bankLogoSrc = 'data:image/' . $ext . ';base64,' . base64_encode(file_get_contents($path));
-                        }
-                    }
-                @endphp
-                @if ($bankLogoSrc !== '')
-                    <img src="{{ $bankLogoSrc }}" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle; margin-right: 6px; border:1px solid #e2e8f0; border-radius:4px; padding:2px; background:#fff;" alt="Logo" />
-                @endif
-                <strong>{{ $data['payment']['method'] }}</strong>
-            </td>
-        </tr>
-        <tr>
-            <td>Nomor Virtual Account</td>
-            <td class="mono" style="font-size:11px;letter-spacing:0.04em;">{{ $data['payment']['va_number'] ?: '-' }}</td>
-        </tr>
-        <tr>
-            <td>Waktu Pembayaran</td>
-            <td>{{ $data['payment']['paid_at_label'] }} @if(!empty($data['payment']['va_expired_at'])) <span style="color:#64748b;font-size:9px;">(Exp: {{ $data['payment']['va_expired_at'] }})</span> @endif</td>
-        </tr>
-        <tr>
-            <td>No. Referensi</td>
-            <td class="mono">#{{ $data['payment']['reference_no'] }}</td>
-        </tr>
+            <tr class="tfoot-total">
+                <td colspan="3" class="text-right" style="text-transform: uppercase;">TOTAL DIBAYARKAN:</td>
+                <td class="text-right mono" style="color: #047857; font-size: 11px;">{{ $data['total_label'] }}</td>
+            </tr>
+        </tfoot>
     </table>
 
+    <!-- KOTAK GATEWAY & INSTRUKSI -->
     @if (!empty($data['payment']['method_instruksi']))
-        <div class="instruksi">
-            <strong style="color:#0f172a;">Instruksi Pembayaran — {{ $data['payment']['method'] }}</strong>
-            <div style="margin-top: 4px; white-space: pre-line;">{{ $data['payment']['method_instruksi'] }}</div>
+        <div class="gateway-box">
+            <div class="gateway-title">Panduan Pembayaran — {{ $data['payment']['method'] }}</div>
+            <div style="margin-top: 2px; white-space: pre-line;">{{ $data['payment']['method_instruksi'] }}</div>
         </div>
     @endif
 
-    {{-- QR Verifikasi + Tanda Tangan --}}
-    <div class="verify">
-        <table width="100%">
-            <tr>
-                <td width="100" align="center" valign="top">
-                    @if(!empty($data['qr_code']))
-                        <img class="verify-qr" src="{{ $data['qr_code'] }}" alt="QR Verifikasi" />
-                    @endif
-                    <div style="font-size:6.5px;color:#64748b;margin-top:4px;">Scan untuk verifikasi</div>
-                </td>
-                <td valign="top" style="padding-left:10px;">
-                    <div class="verify-label">Verifikasi Keaslian Dokumen</div>
-                    <div style="font-size:9px;color:#334155;margin-bottom:4px;">Pindai QR di samping atau buka tautan berikut untuk memastikan dokumen ini asli dan diterbitkan oleh {{ $data['institution']['name'] }}:</div>
-                    <div class="verify-url mono">{{ $data['verification_url'] }}</div>
-                    <div style="font-size:7.5px;color:#94a3b8;margin-top:6px;">No. {{ $data['invoice_number'] }} &middot; {{ $data['student']['nim'] }} &middot; {{ $data['item']['amount_label'] }}</div>
-                </td>
-                <td width="180" align="center" valign="top">
-                    <div style="font-size:10px;color:#334155;">Mataram, {{ $data['invoice_date_label'] }}</div>
-                    <div style="font-size:10px;color:#0f172a;font-weight:700;margin-top:2px;">Bagian Keuangan</div>
-                    <div class="sig-line">Stempel & Tanda Tangan</div>
-                </td>
-            </tr>
-        </table>
-    </div>
+    <!-- SEKSI VERIFIKASI QR CODE & TANDA TANGAN RESMI -->
+    <table class="verify-sig-table" width="100%">
+        <tr>
+            <!-- Left: QR Code -->
+            <td width="80" align="center" valign="middle">
+                @if(!empty($data['qr_code']))
+                    <img class="qr-img" src="{{ $data['qr_code'] }}" alt="QR Verifikasi" />
+                @endif
+                <div style="font-size: 6px; color: #64748b; margin-top: 2px;">Pindai validasi</div>
+            </td>
 
-    <div class="footer">
-        Dokumen ini dihasilkan otomatis oleh Sistem Pembayaran UKT {{ $data['institution']['name'] }}. Simpan sebagai arsip. &middot; Halaman 1/1 &middot; Dicetak: {{ now()->format('d/m/Y H:i') }}
+            <!-- Center: Penjelasan Verifikasi -->
+            <td width="270" valign="top" style="padding-left: 6px; padding-right: 6px;">
+                <div class="verify-label">Verifikasi Keaslian Dokumen</div>
+                <div class="verify-desc">
+                    Pindai kode QR atau buka tautan di bawah ini untuk memverifikasi keabsahan dokumen di basis data universitas:
+                </div>
+                <div class="verify-url">{{ $data['verification_url'] }}</div>
+                <div class="verify-meta">{{ $data['invoice_number'] }} &bull; NIM: {{ $data['student']['nim'] }} &bull; {{ $data['total_label'] }}</div>
+            </td>
+
+            <!-- Right: Tanda Tangan & Stempel -->
+            <td width="150" align="center" valign="top">
+                <div class="sig-box">
+                    <div class="sig-date">Mataram, {{ $data['invoice_date_label'] }}</div>
+                    <div class="sig-title">Biro Administrasi Keuangan (BAK)</div>
+                    <div class="stamp-badge">
+                        TERVERIFIKASI SISTEM<br>
+                        <span style="font-size: 5.5px; font-weight: normal; font-family: monospace;">DIGITALLY SIGNED</span>
+                    </div>
+                    <div class="sig-line">Bagian Keuangan</div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- FOOTER RESMI -->
+    <div class="footer-note">
+        Dokumen ini diterbitkan secara elektronik oleh Sistem Pembayaran UKT {{ $data['institution']['name'] }} dan sah tanpa tanda tangan basah.<br>
+        Dicetak pada: {{ now()->format('d/m/Y H:i:s') }} &bull; Lembar 1 dari 1
     </div>
 </body>
 </html>

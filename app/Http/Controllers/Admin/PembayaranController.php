@@ -100,7 +100,7 @@ class PembayaranController extends Controller
 
     public function show($id)
     {
-        $pembayaran = Pembayaran::with(['tagihan.mahasiswa', 'metodePembayaran', 'riwayatTransaksi'])->findOrFail($id);
+        $pembayaran = Pembayaran::with(['tagihan.mahasiswa', 'metodePembayaran', 'riwayatTransaksi', 'verifier'])->findOrFail($id);
         $beasiswa = \App\Models\BeasiswaMahasiswa::where('tagihan_id', $pembayaran->tagihan_id)->with(['beasiswa.jenisBeasiswa'])->first();
         if (!$beasiswa && $pembayaran->tagihan) {
             $beasiswa = \App\Models\BeasiswaMahasiswa::where('mahasiswa_id', $pembayaran->tagihan->mahasiswa_id)->with(['beasiswa.jenisBeasiswa'])->latest()->first();

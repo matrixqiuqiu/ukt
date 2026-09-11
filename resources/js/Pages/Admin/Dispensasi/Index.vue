@@ -7,7 +7,30 @@ import { formatRupiah, formatDate } from '@/utils';
 const props = defineProps({
     dispensasis: Object,
     template: Object,
+    filters: Object,
+    counts: Object,
 });
+
+const search = ref(props.filters?.search || '');
+const currentStatus = ref(props.filters?.status || '');
+
+const setStatusTab = (status) => {
+    currentStatus.value = status;
+    doFilter();
+};
+
+const doFilter = () => {
+    const params = {};
+    if (search.value) params.search = search.value;
+    if (currentStatus.value) params.status = currentStatus.value;
+    router.get(route('admin.dispensasi.index'), params, { preserveState: true, replace: true });
+};
+
+const clearFilter = () => {
+    search.value = '';
+    currentStatus.value = '';
+    router.get(route('admin.dispensasi.index'), {}, { preserveState: true, replace: true });
+};
 
 const templateForm = useForm({
     template: null,
@@ -76,11 +99,11 @@ const submitReject = () => {
 
 const statusInfo = (status) => {
     const map = {
-        pending: { label: 'Menunggu', class: 'm-badge-warning' },
-        disetujui: { label: 'Disetujui', class: 'm-badge-success' },
-        ditolak: { label: 'Ditolak', class: 'm-badge-danger' },
+        pending: { label: 'Menunggu', cls: 'badge-solid-warning' },
+        disetujui: { label: 'Disetujui', cls: 'badge-solid-success' },
+        ditolak: { label: 'Ditolak', cls: 'badge-solid-danger' },
     };
-    return map[status] || { label: status, class: 'm-badge-secondary' };
+    return map[status] || { label: status, cls: 'badge-solid-secondary' };
 };
 </script>
 
@@ -88,148 +111,244 @@ const statusInfo = (status) => {
     <Head title="Dispensasi" />
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="page-heading">Dispensasi Pembayaran</h2>
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+                <div>
+                    <h2 class="page-heading" style="font-size:1.375rem;font-weight:700;color:#0f172a;margin-bottom:0.25rem;">Dispensasi Pembayaran UKT</h2>
+                    <p style="font-size:0.875rem;color:#64748b;margin:0;">Kelola permohonan penundaan pembayaran jatuh tempo mahasiswa</p>
+                </div>
+            </div>
         </template>
+
         <div class="page-body">
             <div class="container-xl">
-                <!-- Template Surat -->
-                <div class="custom-card mb-4">
-                    <div class="card-header">
-                        <h3 class="card-title">Template Surat Dispensasi</h3>
+                <!-- Template Surat Section -->
+                <div class="template-card">
+                    <div class="template-icon-wrap">
+                        <i class="fas fa-file-contract"></i>
                     </div>
-                    <div class="card-body">
-                        <div class="tpl-row">
-                            <div class="tpl-info">
-                                <div v-if="template?.template_filename" class="tpl-file">
-                                    <i class="fas fa-file-pdf tpl-icon"></i>
-                                    <div>
-                                        <strong>{{ template.template_filename }}</strong>
-                                        <div class="tpl-meta">
-                                            Diunggah {{ template.updated_at ? formatDate(template.updated_at) : '-' }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div v-else class="tpl-empty">
-                                    <i class="fas fa-info-circle"></i>
-                                    Belum ada template. Unggah template surat dispensasi yang akan diunduh mahasiswa.
-                                </div>
-                            </div>
-                            <div class="tpl-actions">
-                                <Link
-                                    v-if="template?.template_path"
-                                    :href="route('admin.dispensasi.download-template')"
-                                    class="btn btn-light"
-                                >
-                                    <i class="fas fa-download"></i> Unduh Template
-                                </Link>
-                                <label class="btn btn-primary mb-0">
-                                    <i class="fas fa-upload"></i> Upload Template
-                                    <input
-                                        type="file"
-                                        accept=".pdf,.doc,.docx"
-                                        class="file-input-hidden"
-                                        @change="handleTemplateChange"
-                                    />
-                                </label>
-                            </div>
+                    <div class="template-info">
+                        <div style="font-size:0.9375rem;font-weight:700;color:#0f172a;margin-bottom:0.25rem;">
+                            Template Formulir Dispensasi Resmi
                         </div>
-                        <div v-if="templateForm.template" class="tpl-save-row">
-                            <span class="tpl-meta">{{ templateForm.template.name }}</span>
-                            <button
-                                class="btn btn-sm btn-success"
-                                :disabled="templateForm.processing"
-                                @click="uploadTemplate"
-                            >
-                                {{ templateForm.processing ? 'Mengunggah...' : 'Simpan Template' }}
-                            </button>
+                        <div v-if="template?.template_filename" style="font-size:0.8125rem;color:#475569;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+                            <span style="font-weight:600;color:#1e293b;">{{ template.template_filename }}</span>
+                            <span style="color:#94a3b8;">&bull;</span>
+                            <span>Diperbarui {{ template.updated_at ? formatDate(template.updated_at) : '-' }}</span>
                         </div>
-                        <div v-if="templateForm.errors.template" class="form-error">
-                            {{ templateForm.errors.template }}
+                        <div v-else style="font-size:0.8125rem;color:#64748b;">
+                            Belum ada template. Mahasiswa memerlukan template resmi bertanda tangan dan materai.
                         </div>
+                    </div>
+                    <div class="template-actions">
+                        <a
+                            v-if="template?.template_path"
+                            :href="route('admin.dispensasi.download-template')"
+                            class="solid-btn btn-white-border"
+                            title="Unduh template surat yang aktif saat ini"
+                        >
+                            <i class="fas fa-download"></i> Unduh File
+                        </a>
+                        <label class="solid-btn btn-indigo-solid" style="cursor:pointer;margin:0;">
+                            <i class="fas fa-upload"></i> {{ template?.template_path ? 'Ganti Template' : 'Upload Template' }}
+                            <input
+                                type="file"
+                                accept=".pdf,.doc,.docx"
+                                style="display:none;"
+                                @change="handleTemplateChange"
+                            />
+                        </label>
                     </div>
                 </div>
 
-                <!-- Daftar Pengajuan -->
-                <div class="custom-card">
-                    <div class="card-header">
-                        <h3 class="card-title">Pengajuan Dispensasi Mahasiswa</h3>
+                <!-- Template Preview / Upload Confirm -->
+                <div v-if="templateForm.template" class="template-confirm-bar">
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <i class="fas fa-paperclip" style="color:#4f46e5;"></i>
+                        <span style="font-size:0.8125rem;font-weight:600;color:#1e293b;">File siap diunggah: {{ templateForm.template.name }}</span>
                     </div>
-                    <div class="card-body">
-                        <div v-if="dispensasis.data.length === 0" class="text-center" style="padding:2rem;color:var(--gray-500);">
-                            <i class="fas fa-check-circle" style="font-size:2rem;color:var(--success);margin-bottom:0.5rem;display:block;"></i>
-                            Belum ada pengajuan dispensasi
+                    <div style="display:flex;gap:0.5rem;">
+                        <button class="solid-btn btn-green-solid" :disabled="templateForm.processing" @click="uploadTemplate">
+                            <i class="fas fa-check"></i> {{ templateForm.processing ? 'Menyimpan...' : 'Konfirmasi Simpan' }}
+                        </button>
+                        <button class="solid-btn btn-white-border" @click="templateForm.reset('template')">
+                            Batal
+                        </button>
+                    </div>
+                </div>
+                <div v-if="templateForm.errors.template" style="color:#dc2626;font-size:0.8125rem;margin-bottom:1rem;padding:0 0.5rem;">
+                    {{ templateForm.errors.template }}
+                </div>
+
+                <!-- Main Data Card with Filter Tabs -->
+                <div class="data-card">
+                    <!-- Filter Header -->
+                    <div class="tabs-filter-bar">
+                        <!-- Status Tabs -->
+                        <div class="status-tabs">
+                            <button
+                                class="tab-btn"
+                                :class="{ 'tab-btn-active': !currentStatus }"
+                                @click="setStatusTab('')"
+                            >
+                                Semua
+                                <span class="tab-count">{{ counts?.all || 0 }}</span>
+                            </button>
+                            <button
+                                class="tab-btn"
+                                :class="{ 'tab-btn-active': currentStatus === 'pending' }"
+                                @click="setStatusTab('pending')"
+                            >
+                                Menunggu Verifikasi
+                                <span class="tab-count tab-count-pending">{{ counts?.pending || 0 }}</span>
+                            </button>
+                            <button
+                                class="tab-btn"
+                                :class="{ 'tab-btn-active': currentStatus === 'disetujui' }"
+                                @click="setStatusTab('disetujui')"
+                            >
+                                Disetujui
+                                <span class="tab-count">{{ counts?.disetujui || 0 }}</span>
+                            </button>
+                            <button
+                                class="tab-btn"
+                                :class="{ 'tab-btn-active': currentStatus === 'ditolak' }"
+                                @click="setStatusTab('ditolak')"
+                            >
+                                Ditolak
+                                <span class="tab-count">{{ counts?.ditolak || 0 }}</span>
+                            </button>
                         </div>
-                        <div v-else class="table-responsive">
-                            <table class="data-table">
+
+                        <!-- Search Box -->
+                        <div class="search-box">
+                            <i class="fas fa-search search-icon"></i>
+                            <input
+                                type="search"
+                                v-model="search"
+                                placeholder="Cari NIM atau Nama..."
+                                class="search-input"
+                                @keyup.enter="doFilter"
+                            />
+                            <button v-if="search" @click="clearFilter" class="search-clear-btn" title="Hapus pencarian">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div v-if="dispensasis.data && dispensasis.data.length > 0">
+                        <div class="table-responsive">
+                            <table class="solid-table">
                                 <thead>
                                     <tr>
-                                        <th>Tanggal Ajuan</th>
+                                        <th style="width:40px;text-align:center;">No</th>
                                         <th>Mahasiswa</th>
-                                        <th>Semester</th>
                                         <th>Tagihan</th>
-                                        <th>Tempo Awal</th>
-                                        <th>Tempo Baru</th>
-                                        <th>Alasan</th>
-                                        <th>Status</th>
-                                        <th>Aksi</th>
+                                        <th>Jatuh Tempo Perpanjangan</th>
+                                        <th>Alasan Pengajuan</th>
+                                        <th style="text-align:center;">Status</th>
+                                        <th style="width:160px;text-align:center;">Aksi / Info</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="d in dispensasis.data" :key="d.id">
-                                        <td>{{ formatDate(d.created_at) }}</td>
-                                        <td>
-                                            <strong>{{ d.mahasiswa?.nama_lengkap }}</strong>
-                                            <div class="text-muted" style="font-size:0.75rem;">{{ d.mahasiswa?.nim }}</div>
-                                        </td>
-                                        <td>{{ d.tagihan?.semester }}</td>
-                                        <td>{{ formatRupiah(d.tagihan?.nominal) }}</td>
-                                        <td>{{ formatDate(d.tempo_awal) }}</td>
-                                        <td><strong style="color:var(--primary);">{{ formatDate(d.tempo_baru) }}</strong></td>
-                                        <td>
-                                            <span class="text-muted" style="font-size:0.8125rem;" :title="d.alasan">
-                                                {{ d.alasan.length > 40 ? d.alasan.substring(0, 40) + '...' : d.alasan }}
-                                            </span>
+                                    <tr v-for="(d, i) in dispensasis.data" :key="d.id">
+                                        <td style="text-align:center;color:#64748b;font-size:0.8125rem;">
+                                            {{ dispensasis.from + i }}
                                         </td>
                                         <td>
-                                            <span class="m-badge" :class="statusInfo(d.status).class">{{ statusInfo(d.status).label }}</span>
-                                            <div v-if="d.catatan_admin" class="text-muted mt-1" style="font-size:0.75rem;">
-                                                {{ d.catatan_admin }}
+                                            <div style="font-weight:700;color:#0f172a;font-size:0.875rem;">
+                                                {{ d.mahasiswa?.nama_lengkap || '-' }}
+                                            </div>
+                                            <div style="display:flex;align-items:center;gap:0.375rem;margin-top:0.125rem;">
+                                                <span style="font-family:monospace;font-size:0.75rem;background:#f1f5f9;color:#334155;padding:0.15rem 0.35rem;border-radius:0.25rem;font-weight:600;">
+                                                    {{ d.mahasiswa?.nim || '-' }}
+                                                </span>
+                                                <span style="font-size:0.75rem;color:#64748b;">{{ d.mahasiswa?.jurusan || '' }}</span>
+                                            </div>
+                                            <div style="font-size:0.6875rem;color:#94a3b8;margin-top:0.25rem;">
+                                                Diajukan: {{ formatDate(d.created_at) }}
                                             </div>
                                         </td>
                                         <td>
+                                            <div style="font-weight:700;color:#0f172a;font-size:0.8125rem;">
+                                                {{ formatRupiah(d.tagihan?.nominal) }}
+                                            </div>
+                                            <div style="font-size:0.75rem;color:#64748b;">
+                                                Semester {{ d.tagihan?.semester }} ({{ d.tagihan?.tahun_akademik }})
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                                <div>
+                                                    <div style="font-size:0.6875rem;color:#94a3b8;text-decoration:line-through;">
+                                                        Awal: {{ formatDate(d.tempo_awal) }}
+                                                    </div>
+                                                    <div style="font-size:0.8125rem;font-weight:700;color:#4f46e5;display:flex;align-items:center;gap:0.25rem;">
+                                                        <i class="fas fa-arrow-right" style="font-size:0.6875rem;"></i>
+                                                        {{ formatDate(d.tempo_baru) }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style="max-width:260px;font-size:0.8125rem;color:#334155;line-height:1.4;">
+                                                {{ d.alasan }}
+                                            </div>
+                                        </td>
+                                        <td style="text-align:center;">
+                                            <span :class="['solid-badge', statusInfo(d.status).cls]">
+                                                {{ statusInfo(d.status).label }}
+                                            </span>
+                                        </td>
+                                        <td style="text-align:center;">
                                             <template v-if="d.status === 'pending'">
-                                                <div class="action-btns">
-                                                    <button @click="openApprove(d)" class="btn btn-sm btn-success">
+                                                <div style="display:flex;gap:0.375rem;justify-content:center;">
+                                                    <button @click="openApprove(d)" class="action-btn btn-green-solid" title="Setujui permohonan dispensasi">
                                                         <i class="fas fa-check"></i> Setujui
                                                     </button>
-                                                    <button @click="openReject(d)" class="btn btn-sm btn-danger">
+                                                    <button @click="openReject(d)" class="action-btn btn-red-solid" title="Tolak permohonan dispensasi">
                                                         <i class="fas fa-times"></i> Tolak
                                                     </button>
                                                 </div>
                                             </template>
-                                            <span v-else class="m-badge badge-blue">Sudah diproses</span>
+                                            <div v-else style="font-size:0.75rem;color:#64748b;text-align:left;padding-left:0.5rem;">
+                                                <div>Diproses: {{ d.diproses_pada ? formatDate(d.diproses_pada) : '-' }}</div>
+                                                <div v-if="d.catatan_admin" style="font-style:italic;color:#334155;margin-top:0.125rem;">
+                                                    "{{ d.catatan_admin }}"
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
 
-                        <!-- Pagination -->
-                        <div v-if="dispensasis.data.length > 0" class="pagination-wrap">
-                            <span class="page-info">
-                                Menampilkan {{ dispensasis.from }}-{{ dispensasis.to }} dari {{ dispensasis.total }} data
+                        <!-- Pagination Footer -->
+                        <div class="pagination-footer">
+                            <span style="font-size:0.8125rem;color:#64748b;">
+                                Menampilkan <strong style="color:#0f172a;">{{ dispensasis.from }}-{{ dispensasis.to }}</strong> dari <strong style="color:#0f172a;">{{ dispensasis.total }}</strong> pengajuan
                             </span>
-                            <div class="pagination">
+                            <div class="pagination-btns">
                                 <template v-for="link in dispensasis.links" :key="link.label">
-                                    <span v-if="!link.url" class="page-item disabled">
-                                        <span class="page-link" v-html="link.label"></span>
-                                    </span>
-                                    <span v-else class="page-item" :class="{ active: link.active }">
-                                        <Link :href="link.url" class="page-link" v-html="link.label" preserve-state />
-                                    </span>
+                                    <span v-if="!link.url" class="p-btn p-disabled" v-html="link.label"></span>
+                                    <Link v-else :href="link.url" class="p-btn" :class="{ 'p-active': link.active }" v-html="link.label" preserve-state />
                                 </template>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div v-else style="text-align:center;padding:4rem 2rem;color:#64748b;">
+                        <div style="width:64px;height:64px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;color:#94a3b8;font-size:1.75rem;">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <h4 style="font-size:1rem;font-weight:700;color:#1e293b;margin:0 0 0.375rem;">Tidak Ada Pengajuan Dispensasi</h4>
+                        <p style="font-size:0.8125rem;color:#64748b;margin:0 0 1rem;max-width:340px;margin-inline:auto;">
+                            {{ currentStatus || search ? 'Tidak ada data yang sesuai dengan filter atau kata kunci.' : 'Saat ini belum ada pengajuan dispensasi dari mahasiswa.' }}
+                        </p>
+                        <button v-if="currentStatus || search" @click="clearFilter" class="solid-btn btn-white-border" style="font-size:0.8125rem;">
+                            <i class="fas fa-undo"></i> Reset Filter
+                        </button>
                     </div>
                 </div>
             </div>
@@ -237,36 +356,62 @@ const statusInfo = (status) => {
 
         <!-- Modal Setujui -->
         <div v-if="activeModal?.type === 'approve'" class="modal-overlay" @click.self="closeModal">
-            <div class="modal-box">
+            <div class="modal-card">
                 <div class="modal-header">
-                    <h4>Setujui Dispensasi</h4>
-                    <button class="modal-close" @click="closeModal">&times;</button>
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <span class="modal-header-icon" style="background:#ecfdf5;color:#059669;">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                        <div>
+                            <h4 style="margin:0;font-size:1rem;font-weight:700;color:#0f172a;">Setujui Dispensasi</h4>
+                            <p style="margin:0;font-size:0.75rem;color:#64748b;">Perpanjangan jatuh tempo tagihan</p>
+                        </div>
+                    </div>
+                    <button class="modal-close-btn" @click="closeModal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <div class="modal-alert modal-alert-warning">
-                        <i class="fas fa-file-signature"></i>
+                    <div class="solid-notice solid-notice-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
                         <div>
-                            Pastikan <strong>surat fisik bermaterai</strong> dari {{ activeModal.data.mahasiswa?.nama_lengkap }}
-                            sudah diterima dan persyaratannya dicek oleh bagian keuangan sebelum menyetujui.
+                            Pastikan <strong>surat fisik bermaterai</strong> dari <strong>{{ activeModal.data.mahasiswa?.nama_lengkap }}</strong> telah diterima dan diverifikasi oleh bagian keuangan.
                         </div>
                     </div>
-                    <div class="modal-alert modal-alert-info">
-                        <i class="fas fa-info-circle"></i>
-                        <div>
-                            Jatuh tempo tagihan akan diperbarui menjadi
-                            <strong>{{ formatDate(activeModal.data.tempo_baru) }}</strong>
-                            untuk {{ activeModal.data.mahasiswa?.nama_lengkap }} ({{ activeModal.data.mahasiswa?.nim }}).
+
+                    <div class="detail-box">
+                        <div class="detail-row">
+                            <span class="detail-label">Mahasiswa:</span>
+                            <span class="detail-value">{{ activeModal.data.mahasiswa?.nama_lengkap }} ({{ activeModal.data.mahasiswa?.nim }})</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Tagihan:</span>
+                            <span class="detail-value">{{ formatRupiah(activeModal.data.tagihan?.nominal) }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Tempo Baru:</span>
+                            <span class="detail-value" style="color:#059669;font-weight:700;">{{ formatDate(activeModal.data.tempo_baru) }}</span>
                         </div>
                     </div>
-                    <div class="m-form-group">
-                        <label class="m-form-label">Catatan (opsional)</label>
-                        <textarea v-model="approveNote" rows="3" class="m-form-control" placeholder="Catatan persetujuan..."></textarea>
+
+                    <div style="margin-top:1rem;">
+                        <label style="display:block;font-size:0.8125rem;font-weight:600;color:#334155;margin-bottom:0.375rem;">
+                            Catatan Persetujuan (Opsional)
+                        </label>
+                        <textarea
+                            v-model="approveNote"
+                            rows="2"
+                            class="modal-textarea"
+                            placeholder="Tambahkan catatan jika ada..."
+                        ></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-light" @click="closeModal">Batal</button>
-                    <button class="btn btn-success" :disabled="processingId === activeModal.data.id" @click="submitApprove">
-                        {{ processingId === activeModal.data.id ? 'Memproses...' : 'Ya, Setujui' }}
+                    <button class="solid-btn btn-white-border" @click="closeModal">Batal</button>
+                    <button
+                        class="solid-btn btn-green-solid"
+                        :disabled="processingId === activeModal.data.id"
+                        @click="submitApprove"
+                    >
+                        <i class="fas fa-check"></i> {{ processingId === activeModal.data.id ? 'Memproses...' : 'Ya, Setujui Sekarang' }}
                     </button>
                 </div>
             </div>
@@ -274,29 +419,47 @@ const statusInfo = (status) => {
 
         <!-- Modal Tolak -->
         <div v-if="activeModal?.type === 'reject'" class="modal-overlay" @click.self="closeModal">
-            <div class="modal-box">
+            <div class="modal-card">
                 <div class="modal-header">
-                    <h4>Tolak Dispensasi</h4>
-                    <button class="modal-close" @click="closeModal">&times;</button>
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <span class="modal-header-icon" style="background:#fef2f2;color:#dc2626;">
+                            <i class="fas fa-times-circle"></i>
+                        </span>
+                        <div>
+                            <h4 style="margin:0;font-size:1rem;font-weight:700;color:#0f172a;">Tolak Dispensasi</h4>
+                            <p style="margin:0;font-size:0.75rem;color:#64748b;">Berikan alasan penolakan yang jelas</p>
+                        </div>
+                    </div>
+                    <button class="modal-close-btn" @click="closeModal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <div class="modal-alert modal-alert-danger">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <div>Alasan penolakan wajib diisi dan akan terlihat oleh mahasiswa.</div>
+                    <div class="solid-notice solid-notice-danger">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            Alasan penolakan wajib diisi dan akan langsung terbaca oleh mahasiswa di portal mereka.
+                        </div>
                     </div>
-                    <div class="m-form-group">
-                        <label class="m-form-label">Alasan Penolakan</label>
-                        <textarea v-model="rejectNote" rows="3" class="m-form-control" placeholder="Tuliskan alasan penolakan..."></textarea>
+
+                    <div style="margin-top:1rem;">
+                        <label style="display:block;font-size:0.8125rem;font-weight:600;color:#334155;margin-bottom:0.375rem;">
+                            Alasan Penolakan <span style="color:#dc2626;">*</span>
+                        </label>
+                        <textarea
+                            v-model="rejectNote"
+                            rows="3"
+                            class="modal-textarea"
+                            placeholder="Contoh: Berkas fisik bermaterai belum diserahkan ke bagian keuangan..."
+                        ></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-light" @click="closeModal">Batal</button>
+                    <button class="solid-btn btn-white-border" @click="closeModal">Batal</button>
                     <button
-                        class="btn btn-danger"
+                        class="solid-btn btn-red-solid"
                         :disabled="!rejectNote.trim() || processingId === activeModal.data.id"
                         @click="submitReject"
                     >
-                        {{ processingId === activeModal.data.id ? 'Memproses...' : 'Tolak Pengajuan' }}
+                        <i class="fas fa-times"></i> {{ processingId === activeModal.data.id ? 'Memproses...' : 'Tolak Pengajuan' }}
                     </button>
                 </div>
             </div>
@@ -305,254 +468,405 @@ const statusInfo = (status) => {
 </template>
 
 <style scoped>
-.file-input-hidden {
-    display: none;
-}
-.card-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #1f2937;
-    margin: 0;
-}
-.m-badge-secondary {
-    background: #f3f4f6;
-    color: #374151;
-}
-
-/* --- Template Upload Section --- */
-.tpl-row {
+/* Template Card */
+.template-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    padding: 1.125rem 1.25rem;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 1rem;
+    margin-bottom: 1.25rem;
     flex-wrap: wrap;
 }
-.tpl-info {
+.template-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 0.625rem;
+    background: #e0e7ff;
+    color: #4338ca;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    min-width: 0;
-    flex: 1;
-}
-.tpl-file {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    min-width: 0;
-}
-.tpl-icon {
-    font-size: 1.5rem;
-    color: #dc2626;
+    justify-content: center;
+    font-size: 1.25rem;
     flex-shrink: 0;
 }
-.tpl-file strong {
-    color: #1f2937;
-    word-break: break-all;
+.template-info {
+    flex: 1;
+    min-width: 200px;
 }
-.tpl-meta {
-    color: #6b7280;
-    font-size: 0.8125rem;
-}
-.tpl-empty {
-    color: #6b7280;
-    font-size: 0.875rem;
+.template-actions {
     display: flex;
-    align-items: center;
     gap: 0.5rem;
-}
-.tpl-actions {
-    display: flex;
-    gap: 0.625rem;
     flex-wrap: wrap;
 }
-.tpl-save-row {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.625rem;
-    margin-top: 0.75rem;
-}
-.form-error {
-    color: #dc2626;
-    font-size: 0.8125rem;
-    margin-top: 0.375rem;
-}
-
-/* --- Pagination --- */
-.pagination-wrap {
+.template-confirm-bar {
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid #e5e7eb;
+    margin-bottom: 1.25rem;
     flex-wrap: wrap;
     gap: 0.75rem;
 }
-.page-info {
-    font-size: 0.8125rem;
-    color: #6b7280;
-}
-.pagination {
-    display: flex;
-    gap: 0.25rem;
-}
-.page-item {
-    display: inline-flex;
-}
-.page-link {
-    padding: 0.375rem 0.75rem;
-    border-radius: 0.5rem;
-    font-size: 0.8125rem;
-    color: #374151;
-    text-decoration: none;
-    border: 1px solid #e5e7eb;
-    transition: all 0.2s;
-}
-.page-link:hover {
-    background: #f9fafb;
-}
-.page-item.active .page-link {
-    background: var(--primary, #4f46e5);
-    color: white;
-    border-color: var(--primary, #4f46e5);
-}
-.page-item.disabled .page-link {
-    opacity: 0.5;
-    cursor: not-allowed;
+
+/* Data Card */
+.data-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    overflow: hidden;
 }
 
-/* --- Table Action Buttons --- */
-.action-btns {
+/* Tabs & Filter Bar */
+.tabs-filter-bar {
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    background: #f8fafc;
+}
+.status-tabs {
     display: flex;
     gap: 0.375rem;
     flex-wrap: wrap;
 }
-.badge-blue {
-    background: #dbeafe;
-    border: 1px solid #93c5fd;
-    color: #1d4ed8;
-}
-
-/* --- Modal Alerts --- */
-.modal-alert {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.625rem;
+.tab-btn {
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    padding: 0.375rem 0.75rem;
     border-radius: 0.5rem;
-    padding: 0.75rem 1rem;
-    font-size: 0.875rem;
-    line-height: 1.55;
-}
-.modal-alert i {
-    margin-top: 0.25rem;
-    flex-shrink: 0;
-}
-.modal-alert + .modal-alert {
-    margin-top: 0.75rem;
-}
-.modal-alert-warning {
-    background: #fef3c7;
-    border: 1px solid #fcd34d;
-    color: #92400e;
-}
-.modal-alert-info {
-    background: #e0f2fe;
-    border: 1px solid #7dd3fc;
-    color: #0c4a6e;
-}
-.modal-alert-danger {
-    background: #fee2e2;
-    border: 1px solid #fca5a5;
-    color: #991b1b;
-}
-
-/* --- Modal Form --- */
-.m-form-group {
-    margin-top: 1rem;
-    margin-bottom: 0;
-}
-.m-form-label {
-    display: block;
     font-size: 0.8125rem;
     font-weight: 600;
-    color: #374151;
-    margin-bottom: 0.5rem;
+    color: #475569;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    transition: all 0.15s;
 }
-.m-form-control {
+.tab-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+.tab-btn-active {
+    background: #1e293b !important;
+    color: #ffffff !important;
+    border-color: #1e293b !important;
+}
+.tab-count {
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.375rem;
+    font-size: 0.6875rem;
+    background: #f1f5f9;
+    color: #334155;
+}
+.tab-btn-active .tab-count {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+}
+.tab-count-pending {
+    background: #fef3c7;
+    color: #b45309;
+    font-weight: 700;
+}
+.tab-btn-active .tab-count-pending {
+    background: #f59e0b;
+    color: #ffffff;
+}
+
+/* Search Box */
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 220px;
+}
+.search-icon {
+    position: absolute;
+    left: 0.75rem;
+    color: #94a3b8;
+    font-size: 0.75rem;
+}
+.search-input {
     width: 100%;
-    padding: 0.625rem 0.875rem;
-    border: 1.5px solid #d1d5db;
-    border-radius: 0.625rem;
-    font-size: 0.875rem;
-    font-family: inherit;
-    color: #1f2937;
+    padding: 0.4375rem 2rem 0.4375rem 2.125rem;
+    font-size: 0.8125rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
     background: #ffffff;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-.m-form-control:focus {
     outline: none;
-    border-color: var(--primary, #4f46e5);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    transition: border-color 0.15s;
 }
-.m-form-control::placeholder {
-    color: #9ca3af;
+.search-input:focus {
+    border-color: #4f46e5;
 }
-textarea.m-form-control {
-    resize: vertical;
-    min-height: 90px;
+.search-clear-btn {
+    position: absolute;
+    right: 0.5rem;
+    border: none;
+    background: none;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 0.75rem;
 }
+
+/* Table */
+.table-responsive {
+    overflow-x: auto;
+}
+.solid-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+.solid-table th {
+    background: #ffffff;
+    color: #475569;
+    font-weight: 700;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+.solid-table td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+.solid-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+/* Solid Badges */
+.solid-badge {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.badge-solid-warning {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+.badge-solid-success {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+.badge-solid-danger {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+.badge-solid-secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+/* Solid Buttons */
+.solid-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s, background 0.15s;
+}
+.solid-btn:hover {
+    opacity: 0.9;
+}
+.btn-indigo-solid {
+    background: #4f46e5;
+    color: #ffffff;
+}
+.btn-green-solid {
+    background: #059669;
+    color: #ffffff;
+}
+.btn-red-solid {
+    background: #dc2626;
+    color: #ffffff;
+}
+.btn-white-border {
+    background: #ffffff;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+}
+.btn-white-border:hover {
+    background: #f8fafc;
+}
+
+.action-btn {
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Pagination */
+.pagination-footer {
+    padding: 0.875rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #f1f5f9;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.pagination-btns {
+    display: flex;
+    gap: 0.25rem;
+}
+.p-btn {
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    color: #334155;
+    text-decoration: none;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+}
+.p-btn:hover {
+    background: #f8fafc;
+}
+.p-active {
+    background: #4f46e5 !important;
+    color: #ffffff !important;
+    border-color: #4f46e5 !important;
+    font-weight: 600;
+}
+.p-disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Modals */
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.6);
+    background: rgba(15, 23, 42, 0.65);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1050;
     padding: 1rem;
 }
-.modal-box {
-    background: white;
+.modal-card {
+    background: #ffffff;
     border-radius: 0.75rem;
     width: 100%;
     max-width: 480px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.25);
     overflow: hidden;
-    animation: modalIn 0.2s ease;
-}
-@keyframes modalIn {
-    from { opacity: 0; transform: translateY(10px) scale(0.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .modal-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.modal-header-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 0.5rem;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid #e5e7eb;
+    justify-content: center;
+    font-size: 1.125rem;
 }
-.modal-header h4 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 700;
-    color: #1f2937;
-}
-.modal-close {
+.modal-close-btn {
     border: none;
     background: none;
     font-size: 1.5rem;
     line-height: 1;
-    color: #9ca3af;
+    color: #94a3b8;
     cursor: pointer;
 }
-.modal-close:hover { color: #374151; }
-.modal-body { padding: 1.25rem; }
+.modal-close-btn:hover {
+    color: #1e293b;
+}
+.modal-body {
+    padding: 1.25rem;
+}
 .modal-footer {
+    padding: 0.875rem 1.25rem;
+    border-top: 1px solid #e2e8f0;
     display: flex;
     justify-content: flex-end;
     gap: 0.5rem;
-    padding: 1rem 1.25rem;
-    border-top: 1px solid #e5e7eb;
+    background: #f8fafc;
+}
+.solid-notice {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+}
+.solid-notice-warning {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+}
+.solid-notice-danger {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+}
+.detail-box {
+    margin-top: 0.875rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+}
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8125rem;
+    padding: 0.25rem 0;
+}
+.detail-label {
+    color: #64748b;
+}
+.detail-value {
+    font-weight: 600;
+    color: #1e293b;
+}
+.modal-textarea {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    font-family: inherit;
+    outline: none;
+}
+.modal-textarea:focus {
+    border-color: #4f46e5;
 }
 </style>
+

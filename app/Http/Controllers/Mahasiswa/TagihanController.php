@@ -20,9 +20,67 @@ class TagihanController extends Controller
         $user = $request->user();
         $mahasiswa = $user->getMahasiswaByNim();
 
-        $tagihans = Tagihan::where('mahasiswa_id', $mahasiswa->id)
-            ->with(['pembayarans'])
-            ->latest()
+        if (!$mahasiswa) {
+            return Inertia::render('Mahasiswa/Tagihan/Index', [
+                'tagihans' => ['data' => [], 'total' => 0],
+                'stats' => [
+                    'total_tagihan' => 0,
+                    'total_lunas' => 0,
+                    'total_belum_lunas' => 0,
+                    'total_nominal_lunas' => 0,
+                    'total_nominal_belum_lunas' => 0,
+                ],
+                'semesterAktif' => SemesterAktif::instance(),
+                'metodePembayarans' => [],
+                'mahasiswa' => null,
+                'vaExpiredAt' => now()->toIso8601String(),
+                'filters' => [
+                    'status' => 'semua',
+                    'search' => '',
+                ],
+            ]);
+        }
+
+        $baseQuery = Tagihan::where('mahasiswa_id', $mahasiswa->id);
+
+        $totalTagihan = (clone $baseQuery)->count();
+        $totalLunas = (clone $baseQuery)->where('status', 'sudah_dibayar')->count();
+        $totalBelumLunas = (clone $baseQuery)->where('status', '!=', 'sudah_dibayar')->count();
+        $totalNominalLunas = (float) (clone $baseQuery)->where('status', 'sudah_dibayar')->sum('nominal');
+        $totalNominalBelumLunas = (float) (clone $baseQuery)->where('status', '!=', 'sudah_dibayar')->sum('nominal');
+
+        $stats = [
+            'total_tagihan' => $totalTagihan,
+            'total_lunas' => $totalLunas,
+            'total_belum_lunas' => $totalBelumLunas,
+            'total_nominal_lunas' => $totalNominalLunas,
+            'total_nominal_belum_lunas' => $totalNominalBelumLunas,
+        ];
+
+        $query = (clone $baseQuery)->with(['pembayarans.metodePembayaran']);
+
+        // Status filter
+        if ($request->filled('status') && $request->status !== 'semua') {
+            if ($request->status === 'lunas') {
+                $query->where('status', 'sudah_dibayar');
+            } elseif ($request->status === 'belum_lunas') {
+                $query->where('status', '!=', 'sudah_dibayar');
+            } elseif ($request->status === 'dispen') {
+                $query->where('status', 'dispen');
+            }
+        }
+
+        // Search query
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('semester', 'like', "%{$search}%")
+                  ->orWhere('tahun_akademik', 'like', "%{$search}%")
+                  ->orWhere('keterangan', 'like', "%{$search}%");
+            });
+        }
+
+        $tagihans = $query->latest()
             ->paginate(10)
             ->withQueryString();
 
@@ -30,6 +88,7 @@ class TagihanController extends Controller
         $beasiswaMap = \App\Models\BeasiswaMahasiswa::where('mahasiswa_id', $mahasiswa->id)
             ->with(['beasiswa.jenisBeasiswa'])
             ->get()->keyBy('tagihan_id');
+            
         $tagihans->getCollection()->transform(function ($t) use ($beasiswaMap) {
             $bm = $beasiswaMap->get($t->id);
             if ($bm) {
@@ -40,14 +99,65 @@ class TagihanController extends Controller
                     'diskon' => $bm->diskon_diterapkan,
                     'tipe' => $bm->beasiswa->tipe_diskon,
                     'nilai' => $bm->beasiswa->nilai_diskon,
+                    'status' => $bm->status,
                 ]);
             }
+
+            $pending = $t->pembayarans
+                ->where('status', 'pending')
+                ->filter(function ($p) {
+                    return !$p->va_expired_at || now()->lte($p->va_expired_at);
+                })
+                ->sortByDesc('id')
+                ->first();
+
+            if ($pending) {
+                $t->setAttribute('pending_pembayaran', [
+                    'id' => $pending->id,
+                    'va_number' => $pending->va_number,
+                    'va_expired_at' => $pending->va_expired_at ? $pending->va_expired_at->toIso8601String() : null,
+                    'metode_pembayaran_id' => $pending->metode_pembayaran_id,
+                    'metode_pembayaran_nama' => $pending->metodePembayaran?->nama_metode ?? 'Virtual Account',
+                    'jumlah_bayar' => (float) $pending->jumlah_bayar,
+                    'status' => $pending->status,
+                ]);
+                $t->setAttribute('pending_pembayaran_id', $pending->id);
+            }
+
+            $confirmed = $t->pembayarans->where('status', 'dikonfirmasi')->first();
+            if ($confirmed) {
+                $t->setAttribute('last_pembayaran_id', $confirmed->id);
+            }
+
+            $t->setAttribute('jatuh_tempo_raw', $t->jatuh_tempo ? $t->jatuh_tempo->format('Y-m-d') : null);
+
             return $t;
         });
 
+        $metodePembayarans = MetodePembayaran::where('status_aktif', true)->get();
+
         return Inertia::render('Mahasiswa/Tagihan/Index', [
             'tagihans' => $tagihans,
+            'stats' => $stats,
             'semesterAktif' => SemesterAktif::instance(),
+            'metodePembayarans' => $metodePembayarans,
+            'mahasiswa' => [
+                'id' => $mahasiswa->id,
+                'nim' => $mahasiswa->nim,
+                'nama_lengkap' => $mahasiswa->nama_lengkap,
+                'jurusan' => $mahasiswa->jurusan,
+                'semester' => $mahasiswa->semester,
+                'angkatan' => $mahasiswa->angkatan,
+            ],
+            'vaExpiredAt' => now()
+                ->addDays((int) env('NTB_VA_DEFAULT_EXPIRED_DAYS', 0))
+                ->addHours((int) env('NTB_VA_DEFAULT_EXPIRED_HOURS', 0))
+                ->addMinutes((int) env('NTB_VA_DEFAULT_EXPIRED_MINUTES', 5))
+                ->toIso8601String(),
+            'filters' => [
+                'status' => $request->input('status', 'semua'),
+                'search' => $request->input('search', ''),
+            ],
         ]);
     }
 
@@ -148,7 +258,7 @@ class TagihanController extends Controller
 
         $pdf = Pdf::loadView('pdf.invoice', ['data' => $invoiceData])->setPaper('a4');
 
-        return $pdf->download($invoiceData['file_name']);
+        return $pdf->stream($invoiceData['file_name']);
     }
 
     /**
@@ -157,7 +267,7 @@ class TagihanController extends Controller
      */
     private function resolveTagihan(Request $request, int $tagihanId): Tagihan
     {
-        $query = Tagihan::with(['pembayarans.metodePembayaran']);
+        $query = Tagihan::with(['pembayarans.metodePembayaran', 'mahasiswa']);
 
         if ($request->user()->role !== 'admin') {
             $query->where('mahasiswa_id', $request->user()->getMahasiswaByNim()->id);

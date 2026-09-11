@@ -16,16 +16,38 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DispensasiController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $dispensasis = Dispensasi::with(['mahasiswa', 'tagihan', 'diprosesOleh'])
-            ->latest()
+        $query = Dispensasi::with(['mahasiswa', 'tagihan', 'diprosesOleh']);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('mahasiswa', function ($q) use ($search) {
+                $q->where('nim', 'like', "%{$search}%")
+                  ->orWhere('nama_lengkap', 'like', "%{$search}%");
+            });
+        }
+
+        $dispensasis = $query->latest()
             ->paginate(10)
             ->withQueryString();
+
+        $counts = [
+            'all' => Dispensasi::count(),
+            'pending' => Dispensasi::where('status', 'pending')->count(),
+            'disetujui' => Dispensasi::where('status', 'disetujui')->count(),
+            'ditolak' => Dispensasi::where('status', 'ditolak')->count(),
+        ];
 
         return Inertia::render('Admin/Dispensasi/Index', [
             'dispensasis' => $dispensasis,
             'template' => DispensasiSetting::instance(),
+            'filters' => $request->only(['search', 'status']),
+            'counts' => $counts,
         ]);
     }
 

@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 
 const props = defineProps({
     banks: Array,
@@ -12,6 +12,9 @@ const editMode = ref(false);
 const editId = ref(null);
 const logoInput = ref(null);
 const logoPreview = ref('');
+
+const deleteModal = ref(null);
+const toggleModal = ref(null);
 
 const form = useForm({
     nama_metode: '',
@@ -41,9 +44,8 @@ const openEdit = (bank) => {
     form.logo = bank.logo || '';
     form.no_rekening = bank.no_rekening || '';
     form.instruksi = bank.instruksi || '';
-    form.logo = bank.logo || '';
     form.kategori = bank.kategori || 'rekening_universitas';
-    form.status_aktif = bank.status_aktif;
+    form.status_aktif = Boolean(bank.status_aktif);
     logoPreview.value = bank.logo || '';
     showModal.value = true;
 };
@@ -62,7 +64,6 @@ const handleLogoChange = (event) => {
     logoPreview.value = URL.createObjectURL(file);
 };
 
-// Fallback to the bank code initial when the logo URL fails to load.
 const handleLogoError = (event) => {
     event.target.style.display = 'none';
     const fallback = event.target.nextElementSibling;
@@ -89,18 +90,32 @@ const submit = () => {
     }
 };
 
-const deleteBank = (bank) => {
-    if (confirm(`Yakin ingin menghapus "${bank.nama_metode}"?`)) {
-        router.delete(route('admin.bank.destroy', bank.id), {
-            preserveScroll: true,
-        });
-    }
+const openDelete = (bank) => {
+    deleteModal.value = bank;
 };
 
-const toggleStatus = (bank) => {
-    if (confirm(`Yakin ingin ${bank.status_aktif ? 'menonaktifkan' : 'mengaktifkan'} "${bank.nama_metode}"?`)) {
-        router.post(route('admin.bank.toggle', bank.id), {}, { preserveScroll: true });
-    }
+const executeDelete = () => {
+    if (!deleteModal.value) return;
+    router.delete(route('admin.bank.destroy', deleteModal.value.id), {
+        preserveScroll: true,
+        onFinish: () => {
+            deleteModal.value = null;
+        },
+    });
+};
+
+const openToggle = (bank) => {
+    toggleModal.value = bank;
+};
+
+const executeToggle = () => {
+    if (!toggleModal.value) return;
+    router.post(route('admin.bank.toggle', toggleModal.value.id), {}, {
+        preserveScroll: true,
+        onFinish: () => {
+            toggleModal.value = null;
+        },
+    });
 };
 
 const bankColors = {
@@ -113,580 +128,554 @@ const bankColors = {
 
 const getBankColor = (nama) => {
     const key = Object.keys(bankColors).find(k => nama.toLowerCase().includes(k.toLowerCase()));
-    return key ? bankColors[key] : '#6b7280';
+    return key ? bankColors[key] : '#4f46e5';
 };
 
-const getBankCode = (nama) => {
-    if (nama.toLowerCase().includes('bri')) return 'BRI';
-    if (nama.toLowerCase().includes('bni')) return 'BNI';
-    if (nama.toLowerCase().includes('mandiri')) return 'MDR';
-    if (nama.toLowerCase().includes('bca')) return 'BCA';
-    if (nama.toLowerCase().includes('btn')) return 'BTN';
-    if (nama.toLowerCase().includes('virtual') || nama.toLowerCase().includes('va')) return 'VIR';
-    return nama.substring(0, 3).toUpperCase();
-};
-
-const hasTrx = (bank) => bank.pembayarans_count > 0;
+const hasTrx = (bank) => (bank.pembayarans_count || 0) > 0;
 </script>
 
 <template>
     <Head title="Data Bank" />
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="page-heading">Data Bank Pembayaran</h2>
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+                <div>
+                    <h2 class="page-heading" style="font-size:1.375rem;font-weight:700;color:#0f172a;margin-bottom:0.25rem;">Metode & Bank Pembayaran</h2>
+                    <p style="font-size:0.875rem;color:#64748b;margin:0;">Kelola kanal pembayaran Virtual Account dan Rekening Universitas</p>
+                </div>
+                <button class="solid-btn btn-indigo-solid" @click="openCreate">
+                    <i class="fas fa-plus"></i> Tambah Bank / Metode
+                </button>
+            </div>
         </template>
+
         <div class="page-body">
             <div class="container-xl">
-                <div class="custom-card">
-                    <div class="card-header">
-                        <h3 class="card-title">Daftar Bank</h3>
-                        <button class="btn btn-primary" @click="openCreate">
-                            <i class="fas fa-plus"></i> Tambah Bank
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div class="bank-admin-grid">
-                            <div v-for="bank in banks" :key="bank.id" class="bank-admin-card" :class="{ inactive: !bank.status_aktif }">
-                                <div class="bank-admin-top">
-                                    <div class="bank-admin-logo" :style="{ background: getBankColor(bank.nama_metode) }">
-                                        <img v-if="bank.logo" :src="bank.logo" alt="Logo {{ bank.nama_metode }}" class="bank-admin-logo-img" @error="handleLogoError" />
-                                        <span v-else class="bank-admin-logo-text">{{ bank.kode }}</span>
-                                    </div>
-                                    <div class="bank-admin-check" v-if="bank.status_aktif">
-                                        <i class="fas fa-check-circle"></i>
-                                    </div>
-                                    <div class="bank-admin-cross" v-else>
-                                        <i class="fas fa-times-circle"></i>
-                                    </div>
-                                </div>
-                                <div class="bank-admin-name">{{ bank.nama_metode }}</div>
-                                <div class="bank-admin-kategori">
-                                    <span class="kategori-tag" :class="bank.kategori === 'virtual_account' ? 'va' : 'ru'">
-                                        {{ bank.kategori === 'virtual_account' ? 'Virtual Account' : 'Rekening Universitas' }}
-                                    </span>
-                                </div>
-                                <div class="bank-admin-rek" v-if="bank.no_rekening">
-                                    <i class="fas fa-hashtag" style="font-size: 0.625rem;"></i> {{ bank.no_rekening }}
-                                </div>
-                                <div class="bank-admin-count">{{ bank.pembayarans_count }} transaksi</div>
+                <div class="bank-grid">
+                    <div
+                        v-for="bank in banks"
+                        :key="bank.id"
+                        class="bank-card"
+                        :class="{ 'bank-card-inactive': !bank.status_aktif }"
+                    >
+                        <!-- Top Bar -->
+                        <div class="bank-card-header">
+                            <div class="bank-logo-box" :style="{ background: getBankColor(bank.nama_metode) }">
+                                <img v-if="bank.logo" :src="bank.logo" :alt="bank.nama_metode" class="bank-logo-img" @error="handleLogoError" />
+                                <span v-else class="bank-logo-fallback">{{ bank.kode }}</span>
+                            </div>
 
-                                <div class="bank-admin-actions">
-                                    <button
-                                        class="bank-admin-toggle"
-                                        :class="bank.status_aktif ? 'active' : 'inactive'"
-                                        @click="toggleStatus(bank)"
-                                        :title="bank.status_aktif ? 'Nonaktifkan' : 'Aktifkan'"
-                                    >
-                                        <i :class="bank.status_aktif ? 'fas fa-toggle-on' : 'fas fa-toggle-off'"></i>
-                                    </button>
-                                    <button class="bank-admin-btn edit" @click="openEdit(bank)" title="Edit">
-                                        <i class="fas fa-pen"></i>
-                                    </button>
-                                    <button
-                                        class="bank-admin-btn delete"
-                                        @click="deleteBank(bank)"
-                                        title="Hapus"
-                                        :disabled="hasTrx(bank)"
-                                        :style="hasTrx(bank) ? 'opacity:0.3;cursor:not-allowed;' : ''"
-                                    >
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
+                            <div style="display:flex;align-items:center;gap:0.375rem;">
+                                <span v-if="bank.status_aktif" class="badge-status badge-status-active">
+                                    <i class="fas fa-check-circle"></i> Aktif
+                                </span>
+                                <span v-else class="badge-status badge-status-inactive">
+                                    <i class="fas fa-times-circle"></i> Nonaktif
+                                </span>
                             </div>
                         </div>
 
-                        <div v-if="!banks || banks.length === 0" class="text-center py-4" style="color: var(--gray-600);">
-                            Belum ada data bank
+                        <!-- Bank Info -->
+                        <div class="bank-card-body">
+                            <h4 class="bank-title">{{ bank.nama_metode }}</h4>
+                            <div class="bank-tag-wrap">
+                                <span :class="['kategori-badge', bank.kategori === 'virtual_account' ? 'badge-va' : 'badge-ru']">
+                                    {{ bank.kategori === 'virtual_account' ? 'Virtual Account' : 'Rekening Universitas' }}
+                                </span>
+                            </div>
+
+                            <div v-if="bank.no_rekening" class="bank-rek-box">
+                                <span style="font-size:0.75rem;color:#64748b;">No. Rek:</span>
+                                <strong style="font-family:monospace;font-size:0.875rem;color:#0f172a;">{{ bank.no_rekening }}</strong>
+                            </div>
+
+                            <div style="font-size:0.75rem;color:#64748b;margin-top:0.5rem;">
+                                <i class="fas fa-receipt" style="color:#94a3b8;margin-right:0.25rem;"></i>
+                                Digunakan pada <strong style="color:#0f172a;">{{ bank.pembayarans_count || 0 }}</strong> transaksi
+                            </div>
+                        </div>
+
+                        <!-- Action Footer -->
+                        <div class="bank-card-footer">
+                            <button
+                                class="btn-toggle"
+                                :class="bank.status_aktif ? 'btn-toggle-active' : 'btn-toggle-inactive'"
+                                @click="openToggle(bank)"
+                                :title="bank.status_aktif ? 'Nonaktifkan Bank' : 'Aktifkan Bank'"
+                            >
+                                <i :class="bank.status_aktif ? 'fas fa-toggle-on' : 'fas fa-toggle-off'"></i>
+                                <span>{{ bank.status_aktif ? 'Aktif' : 'Off' }}</span>
+                            </button>
+
+                            <div style="display:flex;gap:0.375rem;">
+                                <button class="action-btn action-btn-edit" @click="openEdit(bank)" title="Edit Konfigurasi">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                                <button
+                                    class="action-btn action-btn-delete"
+                                    @click="openDelete(bank)"
+                                    :disabled="hasTrx(bank)"
+                                    :title="hasTrx(bank) ? 'Tidak dapat dihapus karena telah memiliki riwayat transaksi' : 'Hapus Bank'"
+                                    :style="hasTrx(bank) ? 'opacity:0.3;cursor:not-allowed;' : ''"
+                                >
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
+                </div>
+
+                <div v-if="!banks || banks.length === 0" style="text-align:center;padding:4rem 2rem;background:#fff;border-radius:0.75rem;border:1px solid #e2e8f0;color:#64748b;">
+                    <i class="fas fa-university" style="font-size:2.5rem;color:#cbd5e1;margin-bottom:0.75rem;display:block;"></i>
+                    <h4 style="font-size:1rem;font-weight:700;color:#1e293b;margin:0 0 0.375rem;">Belum Ada Data Bank</h4>
+                    <p style="font-size:0.8125rem;color:#64748b;margin:0 0 1rem;">Tambahkan rekening bank atau metode pembayaran untuk mahasiswa.</p>
+                    <button class="solid-btn btn-indigo-solid" @click="openCreate">
+                        <i class="fas fa-plus"></i> Tambah Bank Pertama
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- Modal Form -->
+        <!-- Modal Form Tambah/Edit Bank -->
         <Teleport to="body">
             <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
                 <div class="modal-box">
                     <div class="modal-header">
-                        <h3>{{ editMode ? 'Edit Bank' : 'Tambah Bank' }}</h3>
-                        <button class="modal-close" @click="closeModal"><i class="fas fa-times"></i></button>
+                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                            <span style="width:36px;height:36px;border-radius:0.5rem;background:#e0e7ff;color:#4338ca;display:flex;align-items:center;justify-content:center;font-size:1.125rem;">
+                                <i class="fas fa-university"></i>
+                            </span>
+                            <div>
+                                <h4 style="margin:0;font-size:1rem;font-weight:700;color:#0f172a;">{{ editMode ? 'Edit Bank / Metode' : 'Tambah Bank / Metode' }}</h4>
+                                <p style="margin:0;font-size:0.75rem;color:#64748b;">Konfigurasi rekening dan instruksi bayar</p>
+                            </div>
+                        </div>
+                        <button class="modal-close" @click="closeModal">&times;</button>
                     </div>
                     <form @submit.prevent="submit">
                         <div class="modal-body">
-                            <div class="form-group">
-                                <label class="form-label">Nama Bank <span style="color:var(--danger);">*</span></label>
-                                <input v-model="form.nama_metode" type="text" class="form-control" placeholder="Contoh: Bank BRI" required />
-                                <div v-if="form.errors.nama_metode" class="form-error">{{ form.errors.nama_metode }}</div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Kode <span style="color:var(--danger);">*</span></label>
-                                <input v-model="form.kode" type="text" class="form-control" placeholder="Contoh: BRI" maxlength="10" required />
-                                <div v-if="form.errors.kode" class="form-error">{{ form.errors.kode }}</div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Kategori <span style="color:var(--danger);">*</span></label>
-                                <select v-model="form.kategori" class="form-control" required>
-                                    <option value="rekening_universitas">Rekening Universitas</option>
-                                    <option value="virtual_account">Virtual Account</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">No. Rekening</label>
-                                <input v-model="form.no_rekening" type="text" class="form-control" placeholder="Contoh: 1234567890" maxlength="50" />
+                            <div class="m-form-group">
+                                <label class="m-form-label">Nama Bank / Metode <span style="color:#dc2626;">*</span></label>
+                                <input v-model="form.nama_metode" type="text" class="m-form-input" placeholder="Contoh: Bank BRI" required />
+                                <div v-if="form.errors.nama_metode" class="m-form-error">{{ form.errors.nama_metode }}</div>
                             </div>
 
-                            <div class="form-group">
-                                <label class="form-label">Instruksi Pembayaran</label>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                                <div class="m-form-group">
+                                    <label class="m-form-label">Kode Singkat <span style="color:#dc2626;">*</span></label>
+                                    <input v-model="form.kode" type="text" class="m-form-input" placeholder="Contoh: BRI" maxlength="10" required />
+                                    <div v-if="form.errors.kode" class="m-form-error">{{ form.errors.kode }}</div>
+                                </div>
+                                <div class="m-form-group">
+                                    <label class="m-form-label">Kategori <span style="color:#dc2626;">*</span></label>
+                                    <select v-model="form.kategori" class="m-form-input" required>
+                                        <option value="rekening_universitas">Rekening Universitas</option>
+                                        <option value="virtual_account">Virtual Account</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="m-form-group">
+                                <label class="m-form-label">Nomor Rekening (jika transfer manual)</label>
+                                <input v-model="form.no_rekening" type="text" class="m-form-input" placeholder="Contoh: 1234-5678-9012" maxlength="50" />
+                            </div>
+
+                            <div class="m-form-group">
+                                <label class="m-form-label">Instruksi Pembayaran</label>
                                 <textarea
                                     v-model="form.instruksi"
-                                    class="form-control"
+                                    class="m-form-input"
                                     rows="3"
-                                    placeholder="Contoh: Pembayaran dapat dilakukan melalui ATM, Mobile Banking, atau Internet Banking menggunakan nomor Virtual Account."
+                                    placeholder="Tuliskan petunjuk transfer bagi mahasiswa..."
                                 ></textarea>
-                                <div v-if="form.errors.instruksi" class="form-error">{{ form.errors.instruksi }}</div>
+                                <div v-if="form.errors.instruksi" class="m-form-error">{{ form.errors.instruksi }}</div>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Logo (opsional)</label>
-                                <div class="logo-upload-area" @click="logoInput?.click()">
+
+                            <div class="m-form-group">
+                                <label class="m-form-label">Logo Bank (Opsional)</label>
+                                <div class="logo-box-picker" @click="logoInput?.click()">
                                     <input
                                         ref="logoInput"
                                         type="file"
                                         accept="image/*"
-                                        class="logo-file-input"
+                                        style="display:none;"
                                         @change="handleLogoChange"
                                     />
-                                    <img v-if="logoPreview" :src="logoPreview" alt="Preview Logo" class="logo-preview" />
-                                    <div v-else class="logo-upload-placeholder">
-                                        <i class="fas fa-cloud-upload-alt"></i>
-                                        <span>Klik untuk pilih foto logo</span>
+                                    <img v-if="logoPreview" :src="logoPreview" alt="Preview Logo" class="logo-preview-img" />
+                                    <div v-else style="text-align:center;color:#64748b;">
+                                        <i class="fas fa-image" style="font-size:1.5rem;color:#94a3b8;margin-bottom:0.25rem;display:block;"></i>
+                                        <span style="font-size:0.75rem;">Klik untuk memilih file logo</span>
                                     </div>
                                 </div>
-                                <div v-if="form.errors.logo" class="form-error">{{ form.errors.logo }}</div>
+                                <div v-if="form.errors.logo" class="m-form-error">{{ form.errors.logo }}</div>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Status</label>
-                                <label class="toggle-label">
-                                    <input type="checkbox" v-model="form.status_aktif" />
-                                    <span>Aktif</span>
+
+                            <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.75rem;">
+                                <input type="checkbox" id="statusAktifCheck" v-model="form.status_aktif" style="width:16px;height:16px;accent-color:#4f46e5;" />
+                                <label for="statusAktifCheck" style="font-size:0.8125rem;font-weight:600;color:#1e293b;cursor:pointer;">
+                                    Aktifkan metode pembayaran ini untuk mahasiswa
                                 </label>
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" @click="closeModal">Batal</button>
-                            <button type="submit" class="btn btn-primary" :disabled="form.processing">
-                                {{ form.processing ? 'Menyimpan...' : (editMode ? 'Simpan Perubahan' : 'Tambah') }}
+                            <button type="button" class="solid-btn btn-white-border" @click="closeModal">Batal</button>
+                            <button type="submit" class="solid-btn btn-indigo-solid" :disabled="form.processing">
+                                {{ form.processing ? 'Menyimpan...' : (editMode ? 'Simpan Perubahan' : 'Tambah Bank') }}
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
         </Teleport>
+
+        <!-- Modal Toggle Status -->
+        <div v-if="toggleModal" class="modal-overlay" @click.self="toggleModal = null">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <h4 style="margin:0;font-size:1rem;font-weight:700;color:#0f172a;">
+                        {{ toggleModal.status_aktif ? 'Nonaktifkan Metode' : 'Aktifkan Metode' }}
+                    </h4>
+                    <button class="modal-close" @click="toggleModal = null">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p style="font-size:0.875rem;color:#334155;margin:0 0 0.75rem;">
+                        Apakah Anda yakin ingin <strong>{{ toggleModal.status_aktif ? 'menonaktifkan' : 'mengaktifkan' }}</strong> kanal pembayaran <strong>{{ toggleModal.nama_metode }}</strong>?
+                    </p>
+                    <p v-if="toggleModal.status_aktif" style="font-size:0.75rem;color:#dc2626;margin:0;">
+                        Mahasiswa tidak akan dapat memilih metode ini di portal pembayaran selama statusnya nonaktif.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button class="solid-btn btn-white-border" @click="toggleModal = null">Batal</button>
+                    <button
+                        class="solid-btn"
+                        :class="toggleModal.status_aktif ? 'btn-red-solid' : 'btn-green-solid'"
+                        @click="executeToggle"
+                    >
+                        {{ toggleModal.status_aktif ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Delete -->
+        <div v-if="deleteModal" class="modal-overlay" @click.self="deleteModal = null">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <h4 style="margin:0;font-size:1rem;font-weight:700;color:#0f172a;">Hapus Metode Pembayaran</h4>
+                    <button class="modal-close" @click="deleteModal = null">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p style="font-size:0.875rem;color:#334155;margin:0 0 0.75rem;">
+                        Apakah Anda yakin ingin menghapus data bank <strong>{{ deleteModal.nama_metode }}</strong>?
+                    </p>
+                    <p style="font-size:0.75rem;color:#dc2626;margin:0;">
+                        Tindakan ini permanen.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button class="solid-btn btn-white-border" @click="deleteModal = null">Batal</button>
+                    <button class="solid-btn btn-red-solid" @click="executeDelete">
+                        <i class="fas fa-trash"></i> Ya, Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
     </AuthenticatedLayout>
 </template>
 
 <style scoped>
-.bank-admin-grid {
+.bank-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.25rem;
 }
-
-.bank-admin-card {
-    background: white;
-    border: 1px solid var(--gray-200);
+.bank-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
     border-radius: 0.75rem;
-    padding: 1.5rem;
-    text-align: center;
-    transition: all 0.2s;
-}
-
-.bank-admin-card:hover {
-    border-color: var(--gray-300);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.bank-admin-card.inactive {
-    opacity: 0.55;
-    background: var(--gray-50);
-}
-
-.bank-admin-top {
+    padding: 1.25rem;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    margin-bottom: 0.75rem;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: box-shadow 0.15s, border-color 0.15s;
+}
+.bank-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.bank-card-inactive {
+    background: #f8fafc;
+    border-color: #e2e8f0;
 }
 
-.bank-admin-logo {
-    width: 56px;
-    height: 56px;
+.bank-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.875rem;
+}
+.bank-logo-box {
+    width: 44px;
+    height: 44px;
     border-radius: 0.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.125rem;
+    color: #ffffff;
     font-weight: 700;
-    color: white;
+    font-size: 0.875rem;
     overflow: hidden;
 }
-
-.bank-admin-logo-img {
+.bank-logo-img {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    background: white;
+    background: #ffffff;
 }
 
-.bank-admin-logo-text {
-    display: block;
-}
-
-.bank-admin-check {
-    position: absolute;
-    top: -4px;
-    right: calc(50% - 36px);
-    color: var(--success);
-    font-size: 1.125rem;
-    background: white;
-    border-radius: 50%;
-    width: 1.25rem;
-    height: 1.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.bank-admin-cross {
-    position: absolute;
-    top: -4px;
-    right: calc(50% - 36px);
-    color: var(--danger);
-    font-size: 1.125rem;
-    background: white;
-    border-radius: 50%;
-    width: 1.25rem;
-    height: 1.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.bank-admin-name {
-    font-weight: 600;
-    font-size: 0.9375rem;
-    color: var(--gray-800);
-    margin-bottom: 0.25rem;
-}
-
-.bank-admin-kategori {
-    margin-bottom: 0.25rem;
-}
-
-.kategori-tag {
-    display: inline-block;
-    padding: 0.125rem 0.5rem;
-    border-radius: 9999px;
+.badge-status {
     font-size: 0.6875rem;
     font-weight: 600;
-}
-
-.kategori-tag.ru {
-    background: #dbeafe;
-    color: #1e40af;
-}
-
-.kategori-tag.va {
-    background: #f3e8ff;
-    color: #7c3aed;
-}
-
-.bank-admin-rek {
-    font-size: 0.75rem;
-    color: var(--gray-600);
-    margin-bottom: 0.25rem;
-    display: flex;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.375rem;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
     gap: 0.25rem;
-    font-family: monospace;
-    letter-spacing: 0.5px;
 }
-
-.bank-admin-count {
-    font-size: 0.75rem;
-    color: var(--gray-600);
-    margin-bottom: 0.75rem;
-}
-
-.bank-admin-actions {
-    display: flex;
-    justify-content: center;
-    gap: 0.5rem;
-}
-
-.bank-admin-toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 0.5rem;
-    font-size: 1.125rem;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.bank-admin-toggle.active {
-    background: #d1fae5;
+.badge-status-active {
+    background: #ecfdf5;
     color: #065f46;
+    border: 1px solid #a7f3d0;
 }
-
-.bank-admin-toggle.inactive {
-    background: #fee2e2;
+.badge-status-inactive {
+    background: #fef2f2;
     color: #991b1b;
+    border: 1px solid #fecaca;
 }
 
-.bank-admin-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
+.bank-card-body {
+    flex: 1;
+    margin-bottom: 1rem;
+}
+.bank-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 0.375rem;
+}
+.bank-tag-wrap {
+    margin-bottom: 0.5rem;
+}
+.kategori-badge {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.15rem 0.45rem;
+    border-radius: 0.375rem;
+    display: inline-block;
+}
+.badge-va {
+    background: #f3e8ff;
+    color: #6b21a8;
+    border: 1px solid #e9d5ff;
+}
+.badge-ru {
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
 }
 
-.bank-admin-btn.edit {
-    background: var(--gray-100);
-    color: var(--gray-700);
-}
-
-.bank-admin-btn.edit:hover {
-    background: var(--gray-200);
-}
-
-.bank-admin-btn.delete {
-    background: var(--gray-100);
-    color: var(--danger);
-}
-
-.bank-admin-btn.delete:hover {
-    background: #fee2e2;
-}
-
-/* Modal */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    padding: 1rem;
-}
-
-.modal-box {
-    background: white;
-    border-radius: 1rem;
-    width: 100%;
-    max-width: 480px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-}
-
-.modal-header {
+.bank-rek-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.625rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid var(--gray-200);
+    margin-top: 0.5rem;
 }
 
-.modal-header h3 {
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: var(--gray-900);
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 1.125rem;
-    color: var(--gray-500);
-    cursor: pointer;
-    padding: 0.25rem;
-}
-
-.modal-close:hover {
-    color: var(--gray-800);
-}
-
-.modal-body {
-    padding: 1.5rem;
-}
-
-.modal-footer {
+.bank-card-footer {
+    padding-top: 0.875rem;
+    border-top: 1px solid #f1f5f9;
     display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    padding: 1rem 1.5rem;
-    border-top: 1px solid var(--gray-200);
+    justify-content: space-between;
+    align-items: center;
 }
-
-.form-group {
-    margin-bottom: 1rem;
-}
-
-.form-label {
-    display: block;
-    font-size: 0.875rem;
+.btn-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    color: var(--gray-700);
-    margin-bottom: 0.375rem;
-}
-
-.form-control {
-    width: 100%;
-    padding: 0.625rem 0.875rem;
-    border: 1px solid var(--gray-300);
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: #4f46e5;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
-}
-
-.logo-upload-area {
-    border: 2px dashed var(--gray-300);
-    border-radius: 0.75rem;
-    padding: 1rem;
-    text-align: center;
     cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
+    border: 1px solid transparent;
+}
+.btn-toggle-active {
+    background: #ecfdf5;
+    color: #065f46;
+    border-color: #a7f3d0;
+}
+.btn-toggle-inactive {
+    background: #f1f5f9;
+    color: #64748b;
+    border-color: #e2e8f0;
 }
 
-.logo-upload-area:hover {
-    border-color: var(--primary);
-    background: var(--gray-50);
+.action-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 0.375rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+.action-btn-edit {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+}
+.action-btn-edit:hover {
+    background: #e2e8f0;
+}
+.action-btn-delete {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+.action-btn-delete:hover {
+    background: #fee2e2;
 }
 
-.logo-file-input {
-    display: none;
-}
-
-.logo-preview {
-    max-width: 100%;
-    max-height: 96px;
-    object-fit: contain;
-    border-radius: 0.5rem;
-    border: 1px solid var(--gray-200);
-    background: white;
-}
-
-.logo-upload-placeholder {
-    display: flex;
-    flex-direction: column;
+/* Solid Buttons */
+.solid-btn {
+    display: inline-flex;
     align-items: center;
     gap: 0.375rem;
-    color: var(--gray-500);
-    font-size: 0.8125rem;
-    padding: 0.5rem;
-}
-
-.logo-upload-placeholder i {
-    font-size: 1.5rem;
-}
-
-.form-error {
-    font-size: 0.75rem;
-    color: var(--danger);
-    margin-top: 0.25rem;
-}
-
-.toggle-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    font-size: 0.875rem;
-}
-
-.toggle-label input[type="checkbox"] {
-    width: 1rem;
-    height: 1rem;
-    accent-color: #4f46e5;
-}
-
-.alert {
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.875rem;
     border-radius: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-}
-
-.alert-success {
-    background: #d1fae5;
-    color: #065f46;
-    border-left: 3px solid #10b981;
-}
-
-.alert-danger {
-    background: #fee2e2;
-    color: #991b1b;
-    border-left: 3px solid #ef4444;
-}
-
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 2rem;
+    font-size: 0.8125rem;
     font-weight: 600;
-    font-size: 0.875rem;
+    text-decoration: none;
     border: none;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: opacity 0.15s;
 }
-
-.btn-primary {
+.solid-btn:hover {
+    opacity: 0.9;
+}
+.btn-indigo-solid {
     background: #4f46e5;
-    color: white;
+    color: #ffffff;
+}
+.btn-green-solid {
+    background: #059669;
+    color: #ffffff;
+}
+.btn-red-solid {
+    background: #dc2626;
+    color: #ffffff;
+}
+.btn-white-border {
+    background: #ffffff;
+    color: #334155;
+    border: 1px solid #cbd5e1;
 }
 
-.btn-primary:hover {
-    background: #4338ca;
+/* Modals */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+    padding: 1rem;
 }
-
-.btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+.modal-box {
+    background: #ffffff;
+    border-radius: 0.75rem;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+    overflow: hidden;
 }
-
-.btn-secondary {
-    background: var(--gray-100);
-    color: var(--gray-700);
+.modal-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
-
-.btn-secondary:hover {
-    background: var(--gray-200);
+.modal-close {
+    border: none;
+    background: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #94a3b8;
+    cursor: pointer;
 }
-
-@media (max-width: 768px) {
-    .bank-admin-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+.modal-body {
+    padding: 1.25rem;
+}
+.modal-footer {
+    padding: 0.875rem 1.25rem;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    background: #f8fafc;
+}
+.m-form-group {
+    margin-bottom: 0.875rem;
+}
+.m-form-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.375rem;
+}
+.m-form-input {
+    width: 100%;
+    padding: 0.5625rem 0.875rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    color: #1e293b;
+    outline: none;
+    background: #ffffff;
+}
+.m-form-input:focus {
+    border-color: #4f46e5;
+}
+.m-form-error {
+    font-size: 0.75rem;
+    color: #dc2626;
+    margin-top: 0.25rem;
+}
+.logo-box-picker {
+    border: 1.5px dashed #cbd5e1;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: #f8fafc;
+}
+.logo-box-picker:hover {
+    border-color: #4f46e5;
+}
+.logo-preview-img {
+    max-height: 60px;
+    object-fit: contain;
 }
 </style>
+

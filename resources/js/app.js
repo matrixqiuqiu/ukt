@@ -1,5 +1,5 @@
-import '../css/app.css';
 import '../css/stisla.css';
+import '../css/app.css';
 import './bootstrap';
 
 // Load Stisla app-shell and theme scripts

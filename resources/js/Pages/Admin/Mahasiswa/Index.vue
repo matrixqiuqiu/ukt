@@ -16,9 +16,13 @@ const semester = ref(props.filters?.semester || '');
 const angkatan = ref(props.filters?.angkatan || '');
 const sort = ref(props.filters?.sort || '');
 const direction = ref(props.filters?.direction || 'asc');
+
+const syncModalOpen = ref(false);
 const syncAngkatan = ref('');
 const syncBatch = ref('100');
 const syncing = ref(false);
+
+const impersonateModal = ref(null);
 
 const doFilter = () => {
     const params = {};
@@ -51,29 +55,40 @@ const clearFilter = () => {
     jurusan.value = '';
     semester.value = '';
     angkatan.value = '';
+    sort.value = '';
     router.get(route('admin.mahasiswa.index'), {}, { preserveState: true, replace: true });
 };
 
 const hasFilter = () => search.value || status.value || jurusan.value || semester.value || angkatan.value;
 
-const doSync = () => {
-    if (!syncAngkatan.value) {
-        alert('Pilih angkatan terlebih dahulu untuk sinkronisasi.');
-        return;
+const openSyncModal = () => {
+    if (!syncAngkatan.value && props.filterOptions?.angkatan?.length > 0) {
+        syncAngkatan.value = props.filterOptions.angkatan[0];
     }
-    const jumlah = syncBatch.value === 'semua' ? 'semua data' : syncBatch.value + ' data';
-    if (window.confirm(`Sinkronisasi ${jumlah} mahasiswa angkatan ${syncAngkatan.value} dari Siakad? Klik berulang untuk melanjutkan batch berikutnya.`)) {
-        syncing.value = true;
-        router.post(route('admin.siakad.sync-mahasiswa'), { angkatan: syncAngkatan.value, batch: syncBatch.value }, {
-            onFinish: () => { syncing.value = false; },
-        });
-    }
+    syncModalOpen.value = true;
 };
 
-const loginAs = (id, nama) => {
-    if (confirm(`Login sebagai ${nama}? Anda akan dialihkan ke dashboard mahasiswa.`)) {
-        router.post(route('admin.mahasiswa.impersonate', id), {}, { preserveScroll: false });
-    }
+const executeSync = () => {
+    if (!syncAngkatan.value) return;
+    syncing.value = true;
+    router.post(route('admin.siakad.sync-mahasiswa'), { 
+        angkatan: syncAngkatan.value, 
+        batch: syncBatch.value 
+    }, {
+        onFinish: () => { 
+            syncing.value = false;
+            syncModalOpen.value = false;
+        },
+    });
+};
+
+const openImpersonateModal = (m) => {
+    impersonateModal.value = m;
+};
+
+const executeImpersonate = () => {
+    if (!impersonateModal.value) return;
+    router.post(route('admin.mahasiswa.impersonate', impersonateModal.value.id), {}, { preserveScroll: false });
 };
 </script>
 
@@ -81,113 +96,146 @@ const loginAs = (id, nama) => {
     <Head title="Data Mahasiswa" />
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="page-heading">Data Mahasiswa</h2>
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+                <div>
+                    <h2 class="page-heading" style="font-size:1.375rem;font-weight:700;color:#0f172a;margin-bottom:0.25rem;">Data Mahasiswa</h2>
+                    <p style="font-size:0.875rem;color:#64748b;margin:0;">Kelola data induk mahasiswa dan sinkronisasi dengan SIAKAD</p>
+                </div>
+                <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                    <a :href="route('admin.siakad.test-connection')" target="_blank" class="solid-btn btn-white-border" title="Uji koneksi ke endpoint API Siakad">
+                        <i class="fas fa-plug"></i> Test API SIAKAD
+                    </a>
+                    <button @click="openSyncModal" class="solid-btn btn-indigo-solid">
+                        <i class="fas fa-sync-alt"></i> Sinkronisasi SIAKAD
+                    </button>
+                </div>
+            </div>
         </template>
+
         <div class="page-body">
             <div class="container-xl">
-                <div class="custom-card">
-                    <div class="card-header">
-                        <h4><i class="fas fa-users" style="margin-right:0.5rem;"></i> Daftar Mahasiswa</h4>
-                        <div class="toolbar-actions">
-                            <select v-model="syncAngkatan" class="filter-select">
-                                <option value="">-- Pilih Angkatan --</option>
-                                <option v-for="a in filterOptions.angkatan" :key="a" :value="a">Angkatan {{ a }}</option>
-                            </select>
-                            <select v-model="syncBatch" class="filter-select" title="Jumlah data per sinkron">
-                                <option value="100">100 / kali</option>
-                                <option value="200">200 / kali</option>
-                                <option value="500">500 / kali</option>
-                                <option value="semua">Semua</option>
-                            </select>
-                            <a :href="route('admin.siakad.test-connection')" target="_blank" class="m-btn m-btn-sm m-btn-secondary">
-                                <i class="fas fa-plug"></i> Test API
-                            </a>
-                            <button @click="doSync" class="m-btn m-btn-sm m-btn-primary" :disabled="syncing">
-                                <i class="fas" :class="syncing ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i>
-                                {{ syncing ? 'Sinkronisasi...' : 'Sinkron Siakad' }}
+                <!-- Filter Card -->
+                <div class="filter-card">
+                    <div style="font-size:0.875rem;font-weight:700;color:#1e293b;margin-bottom:0.75rem;display:flex;align-items:center;justify-content:space-between;">
+                        <span style="display:flex;align-items:center;gap:0.5rem;">
+                            <i class="fas fa-filter" style="color:#4f46e5;"></i> Filter Mahasiswa
+                        </span>
+                        <span v-if="mahasiswas?.total !== undefined" style="font-size:0.8125rem;font-weight:500;color:#64748b;">
+                            Total: <strong style="color:#0f172a;">{{ mahasiswas.total }}</strong> mahasiswa
+                        </span>
+                    </div>
+
+                    <div class="filter-grid">
+                        <!-- Search Box -->
+                        <div class="search-box-wrap">
+                            <i class="fas fa-search search-icon"></i>
+                            <input
+                                type="search"
+                                class="filter-input search-input"
+                                v-model="search"
+                                placeholder="Cari NIM atau Nama..."
+                                @keyup.enter="doFilter"
+                            />
+                        </div>
+
+                        <!-- Status Filter -->
+                        <select v-model="status" @change="doFilter" class="filter-input">
+                            <option value="">Semua Status</option>
+                            <option value="aktif">Aktif</option>
+                            <option value="nonaktif">Nonaktif</option>
+                        </select>
+
+                        <!-- Jurusan Filter -->
+                        <select v-model="jurusan" @change="doFilter" class="filter-input">
+                            <option value="">Semua Program Studi</option>
+                            <option v-for="j in filterOptions.jurusan" :key="j" :value="j">{{ j }}</option>
+                        </select>
+
+                        <!-- Angkatan Filter -->
+                        <select v-model="angkatan" @change="doFilter" class="filter-input">
+                            <option value="">Semua Angkatan</option>
+                            <option v-for="a in filterOptions.angkatan" :key="a" :value="a">Angkatan {{ a }}</option>
+                        </select>
+
+                        <!-- Semester Filter -->
+                        <select v-model="semester" @change="doFilter" class="filter-input">
+                            <option value="">Semua Semester</option>
+                            <option v-for="s in filterOptions.semester" :key="s" :value="s">Semester {{ s }}</option>
+                        </select>
+
+                        <!-- Action Buttons -->
+                        <div class="filter-actions">
+                            <button @click="doFilter" class="btn-solid-primary" style="padding:0.5625rem 1rem;">
+                                <i class="fas fa-search"></i> Terapkan
+                            </button>
+                            <button v-if="hasFilter()" @click="clearFilter" class="btn-solid-secondary" style="padding:0.5625rem 0.875rem;" title="Reset filter">
+                                <i class="fas fa-undo"></i> Reset
                             </button>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <!-- Filter Bar -->
-                        <div class="filter-bar">
-                            <div class="input-group input-group--search">
-                                <span class="input-group__text">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11.5" cy="11.5" r="9.5"/><path stroke-linecap="round" d="M18.5 18.5L22 22"/></g></svg>
-                                </span>
-                                <input type="search" class="input" v-model="search" placeholder="Cari NIM atau Nama..." @keyup.enter="doFilter" />
-                            </div>
-                            <select v-model="status" @change="doFilter" class="filter-select">
-                                <option value="">Semua Status</option>
-                                <option value="aktif">Aktif</option>
-                                <option value="nonaktif">Nonaktif</option>
-                            </select>
-                            <select v-model="jurusan" @change="doFilter" class="filter-select">
-                                <option value="">Semua Jurusan</option>
-                                <option v-for="j in filterOptions.jurusan" :key="j" :value="j">{{ j }}</option>
-                            </select>
-                            <select v-model="angkatan" @change="doFilter" class="filter-select" style="max-width:130px;">
-                                <option value="">Semua Angkatan</option>
-                                <option v-for="a in filterOptions.angkatan" :key="a" :value="a">{{ a }}</option>
-                            </select>
-                            <select v-model="semester" @change="doFilter" class="filter-select" style="max-width:130px;">
-                                <option value="">Semua Semester</option>
-                                <option v-for="s in filterOptions.semester" :key="s" :value="s">Semester {{ s }}</option>
-                            </select>
-                            <div class="filter-actions">
-                                <button @click="doFilter" class="m-btn m-btn-sm m-btn-primary filter-btn">
-                                    <i class="fas fa-filter"></i> Filter
-                                </button>
-                                <button v-if="hasFilter()" @click="clearFilter" class="m-btn m-btn-sm m-btn-secondary filter-btn">
-                                    <i class="fas fa-times"></i> Reset
-                                </button>
-                            </div>
-                        </div>
+                </div>
 
-                        <!-- Table -->
-                        <div v-if="mahasiswas.data && mahasiswas.data.length > 0">
-                            <div class="table-responsive">
-                            <table class="m-data-table">
+                <!-- Table Card -->
+                <div class="data-card">
+                    <div v-if="mahasiswas.data && mahasiswas.data.length > 0">
+                        <div class="table-responsive">
+                            <table class="solid-table">
                                 <thead>
                                     <tr>
-                                        <th style="width:50px">No</th>
-                                        <th @click="handleSort('nim')" style="cursor:pointer;user-select:none;">NIM <i class="fas" :class="sortIcon('nim')" style="font-size:0.65rem;opacity:0.5;margin-left:0.25rem;"></i></th>
-                                        <th @click="handleSort('nama_lengkap')" style="cursor:pointer;user-select:none;">Nama Lengkap <i class="fas" :class="sortIcon('nama_lengkap')" style="font-size:0.65rem;opacity:0.5;margin-left:0.25rem;"></i></th>
-                                        <th>Email</th>
-                                        <th>No. HP</th>
-                                        <th @click="handleSort('jurusan')" style="cursor:pointer;user-select:none;">Jurusan <i class="fas" :class="sortIcon('jurusan')" style="font-size:0.65rem;opacity:0.5;margin-left:0.25rem;"></i></th>
-                                        <th @click="handleSort('angkatan')" style="cursor:pointer;user-select:none;text-align:center;">Angkatan <i class="fas" :class="sortIcon('angkatan')" style="font-size:0.65rem;opacity:0.5;margin-left:0.25rem;"></i></th>
-                                        <th @click="handleSort('semester')" style="cursor:pointer;user-select:none;text-align:center;">Semester <i class="fas" :class="sortIcon('semester')" style="font-size:0.65rem;opacity:0.5;margin-left:0.25rem;"></i></th>
+                                        <th style="width:40px;text-align:center;">No</th>
+                                        <th @click="handleSort('nim')" class="sortable-th">NIM <i class="fas" :class="sortIcon('nim')"></i></th>
+                                        <th @click="handleSort('nama_lengkap')" class="sortable-th">Nama Mahasiswa <i class="fas" :class="sortIcon('nama_lengkap')"></i></th>
+                                        <th @click="handleSort('jurusan')" class="sortable-th">Program Studi <i class="fas" :class="sortIcon('jurusan')"></i></th>
+                                        <th @click="handleSort('angkatan')" class="sortable-th" style="text-align:center;">Angkatan <i class="fas" :class="sortIcon('angkatan')"></i></th>
+                                        <th @click="handleSort('semester')" class="sortable-th" style="text-align:center;">Sem <i class="fas" :class="sortIcon('semester')"></i></th>
                                         <th style="text-align:center;">Status</th>
-                                        <th style="width:110px">Aksi</th>
+                                        <th style="width:90px;text-align:center;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-for="(m, i) in mahasiswas.data" :key="m.id">
-                                        <td>{{ mahasiswas.from + i }}</td>
-                                        <td style="font-weight:600;font-family:monospace;">{{ m.nim }}</td>
-                                        <td>{{ m.nama_lengkap }}</td>
-                                        <td>{{ m.email || '-' }}</td>
-                                        <td>{{ m.telepon || '-' }}</td>
-                                        <td>{{ m.jurusan }}</td>
-                                        <td style="text-align:center;">{{ m.angkatan }}</td>
-                                        <td style="text-align:center;">
-                                            <span class="m-badge" :class="(m.semester_label || (m.semester %2===0 ? 'Genap':'Ganjil')) === 'Genap' ? 'm-badge-info' : 'm-badge-success'" :title="`Tersimpan: ${m.semester}`">
-                                                {{ m.semester_hitung ?? m.semester }}
-                                            </span>
-                                            <div style="font-size:0.6rem;color:var(--gray-500);">{{ m.semester_label || '-' }}</div>
+                                        <td style="text-align:center;color:#64748b;font-size:0.8125rem;">
+                                            {{ mahasiswas.from + i }}
                                         </td>
-                                        <td style="text-align:center;">
-                                            <span class="m-badge" :class="m.status_aktif ? 'm-badge-success' : 'm-badge-danger'">
-                                                {{ m.status_aktif ? 'Aktif' : 'Nonaktif' }}
+                                        <td>
+                                            <span style="font-family:monospace;font-weight:700;color:#0f172a;background:#f1f5f9;padding:0.2rem 0.4rem;border-radius:0.375rem;font-size:0.8125rem;">
+                                                {{ m.nim }}
                                             </span>
                                         </td>
                                         <td>
-                                            <div style="display:flex;gap:0.375rem;">
-                                                <Link :href="route('admin.mahasiswa.show', m.id)" class="m-btn m-btn-sm m-btn-primary" title="Detail">
+                                            <div style="font-weight:700;color:#0f172a;font-size:0.875rem;">
+                                                {{ m.nama_lengkap }}
+                                            </div>
+                                            <div style="font-size:0.75rem;color:#64748b;">
+                                                {{ m.email || m.telepon || '-' }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span style="font-size:0.8125rem;color:#334155;">{{ m.jurusan || '-' }}</span>
+                                        </td>
+                                        <td style="text-align:center;font-size:0.8125rem;color:#334155;">
+                                            {{ m.angkatan || '-' }}
+                                        </td>
+                                        <td style="text-align:center;">
+                                            <span style="display:inline-block;padding:0.15rem 0.5rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:0.375rem;font-size:0.75rem;font-weight:600;color:#334155;">
+                                                {{ m.semester_hitung ?? m.semester }}
+                                            </span>
+                                        </td>
+                                        <td style="text-align:center;">
+                                            <span :class="['solid-badge', m.status_aktif ? 'badge-solid-success' : 'badge-solid-danger']">
+                                                {{ m.status_aktif ? 'Aktif' : 'Nonaktif' }}
+                                            </span>
+                                        </td>
+                                        <td style="text-align:center;">
+                                            <div style="display:flex;gap:0.375rem;justify-content:center;">
+                                                <Link :href="route('admin.mahasiswa.show', m.id)" class="action-btn-view" title="Lihat Profil Mahasiswa">
                                                     <i class="fas fa-eye"></i>
                                                 </Link>
-                                                <button @click="loginAs(m.id, m.nama_lengkap)" class="m-btn m-btn-sm" style="background:#0ea5e9;color:#fff;" title="Login sebagai mahasiswa">
+                                                <button
+                                                    @click="openImpersonateModal(m)"
+                                                    class="action-btn-login"
+                                                    title="Login ke portal sebagai mahasiswa ini"
+                                                >
                                                     <i class="fas fa-sign-in-alt"></i>
                                                 </button>
                                             </div>
@@ -195,30 +243,129 @@ const loginAs = (id, nama) => {
                                     </tr>
                                 </tbody>
                             </table>
-                            </div>
-
-                            <!-- Pagination -->
-                            <div class="pagination-wrap">
-                                <span class="pagination-info">
-                                    Menampilkan {{ mahasiswas.from }}-{{ mahasiswas.to }} dari {{ mahasiswas.total }} data
-                                </span>
-                                <div class="pagination">
-                                    <template v-for="link in mahasiswas.links" :key="link.label">
-                                        <span v-if="!link.url" class="page-item disabled">
-                                            <span class="page-link" v-html="link.label"></span>
-                                        </span>
-                                        <span v-else class="page-item" :class="{ active: link.active }">
-                                            <Link :href="link.url" class="page-link" v-html="link.label" preserve-state />
-                                        </span>
-                                    </template>
-                                </div>
-                            </div>
                         </div>
-                        <div v-else class="empty-state">
-                            <i class="fas fa-users" style="font-size:2.5rem;color:var(--gray-300);margin-bottom:1rem;display:block;"></i>
-                            Tidak ada data mahasiswa ditemukan.
+
+                        <!-- Pagination Footer -->
+                        <div class="pagination-footer">
+                            <span style="font-size:0.8125rem;color:#64748b;">
+                                Menampilkan <strong style="color:#0f172a;">{{ mahasiswas.from }}-{{ mahasiswas.to }}</strong> dari <strong style="color:#0f172a;">{{ mahasiswas.total }}</strong> mahasiswa
+                            </span>
+                            <div class="pagination-btns">
+                                <template v-for="link in mahasiswas.links" :key="link.label">
+                                    <span v-if="!link.url" class="p-btn p-disabled" v-html="link.label"></span>
+                                    <Link v-else :href="link.url" class="p-btn" :class="{ 'p-active': link.active }" v-html="link.label" preserve-state />
+                                </template>
+                            </div>
                         </div>
                     </div>
+
+                    <div v-else style="text-align:center;padding:4rem 2rem;color:#64748b;">
+                        <i class="fas fa-users" style="font-size:2.5rem;color:#cbd5e1;margin-bottom:0.75rem;display:block;"></i>
+                        <h4 style="font-size:0.9375rem;font-weight:700;color:#1e293b;margin:0 0 0.25rem;">Tidak Ada Data Mahasiswa</h4>
+                        <p style="font-size:0.8125rem;color:#64748b;margin:0 0 1rem;">Tidak ditemukan mahasiswa yang sesuai dengan filter atau kata kunci pencarian.</p>
+                        <button v-if="hasFilter()" @click="clearFilter" class="btn-solid-secondary" style="font-size:0.8125rem;">
+                            <i class="fas fa-undo"></i> Reset Filter
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Sinkronisasi Siakad -->
+        <div v-if="syncModalOpen" class="modal-overlay" @click.self="!syncing && (syncModalOpen = false)">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <span style="width:36px;height:36px;border-radius:0.5rem;background:#e0e7ff;color:#4338ca;display:flex;align-items:center;justify-content:center;font-size:1.125rem;">
+                            <i class="fas fa-sync-alt" :class="{ 'fa-spin': syncing }"></i>
+                        </span>
+                        <div>
+                            <h4 style="margin:0;font-size:1rem;font-weight:700;color:#0f172a;">Sinkronisasi Data SIAKAD</h4>
+                            <p style="margin:0;font-size:0.75rem;color:#64748b;">Tarik data mahasiswa aktif secara bertahap</p>
+                        </div>
+                    </div>
+                    <button v-if="!syncing" class="modal-close-btn" @click="syncModalOpen = false">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="solid-notice solid-notice-info">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            Proses ini akan mengimpor atau memperbarui data mahasiswa dari database SIAKAD kampus ke database sistem UKT.
+                        </div>
+                    </div>
+
+                    <div style="margin-top:1rem;">
+                        <label style="display:block;font-size:0.8125rem;font-weight:600;color:#334155;margin-bottom:0.375rem;">
+                            Pilih Angkatan Mahasiswa <span style="color:#dc2626;">*</span>
+                        </label>
+                        <select v-model="syncAngkatan" class="modal-select" :disabled="syncing">
+                            <option value="">-- Pilih Angkatan --</option>
+                            <option v-for="a in filterOptions.angkatan" :key="a" :value="a">Angkatan {{ a }}</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-top:1rem;">
+                        <label style="display:block;font-size:0.8125rem;font-weight:600;color:#334155;margin-bottom:0.375rem;">
+                            Ukuran Batch Sinkronisasi
+                        </label>
+                        <select v-model="syncBatch" class="modal-select" :disabled="syncing">
+                            <option value="100">100 Data / Batch (Direkomendasikan)</option>
+                            <option value="200">200 Data / Batch</option>
+                            <option value="500">500 Data / Batch</option>
+                            <option value="semua">Semua Sekaligus</option>
+                        </select>
+                        <span style="font-size:0.75rem;color:#64748b;display:block;margin-top:0.25rem;">
+                            Jika data angkatan banyak, gunakan 100 data/batch agar koneksi API tetap stabil.
+                        </span>
+                    </div>
+
+                    <div v-if="syncing" style="margin-top:1.25rem;padding:0.75rem 1rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:0.5rem;text-align:center;">
+                        <i class="fas fa-spinner fa-spin" style="color:#4f46e5;font-size:1.5rem;margin-bottom:0.5rem;display:block;"></i>
+                        <div style="font-weight:600;color:#1e293b;font-size:0.875rem;">Sedang menghubungkan ke API SIAKAD...</div>
+                        <div style="font-size:0.75rem;color:#64748b;">Mohon tunggu, jangan menutup browser Anda.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="solid-btn btn-white-border" :disabled="syncing" @click="syncModalOpen = false">Batal</button>
+                    <button class="solid-btn btn-indigo-solid" :disabled="syncing || !syncAngkatan" @click="executeSync">
+                        <i class="fas fa-play"></i> {{ syncing ? 'Sinkronisasi Berjalan...' : 'Mulai Sinkronisasi' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Impersonate (Login As) -->
+        <div v-if="impersonateModal" class="modal-overlay" @click.self="impersonateModal = null">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <span style="width:36px;height:36px;border-radius:0.5rem;background:#e0f2fe;color:#0284c7;display:flex;align-items:center;justify-content:center;font-size:1.125rem;">
+                            <i class="fas fa-user-secret"></i>
+                        </span>
+                        <div>
+                            <h4 style="margin:0;font-size:1rem;font-weight:700;color:#0f172a;">Masuk Sebagai Mahasiswa</h4>
+                            <p style="margin:0;font-size:0.75rem;color:#64748b;">Fitur Diagnostik & Panduan Bantuan Mahasiswa</p>
+                        </div>
+                    </div>
+                    <button class="modal-close-btn" @click="impersonateModal = null">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p style="font-size:0.875rem;color:#334155;margin:0 0 0.75rem;">
+                        Anda akan dialihkan dan login sebagai mahasiswa berikut:
+                    </p>
+                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:0.5rem;padding:0.75rem 1rem;">
+                        <div style="font-weight:700;color:#0f172a;font-size:0.9375rem;">{{ impersonateModal.nama_lengkap }}</div>
+                        <div style="font-size:0.8125rem;color:#64748b;font-family:monospace;">NIM: {{ impersonateModal.nim }} &bull; {{ impersonateModal.jurusan }}</div>
+                    </div>
+                    <p style="font-size:0.75rem;color:#64748b;margin:0.75rem 0 0;">
+                        Anda dapat kembali ke akun admin kapan saja melalui tombol *"Kembali ke Admin"* di header atas.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button class="solid-btn btn-white-border" @click="impersonateModal = null">Batal</button>
+                    <button class="solid-btn btn-indigo-solid" @click="executeImpersonate">
+                        <i class="fas fa-sign-in-alt"></i> Ya, Masuk Sekarang
+                    </button>
                 </div>
             </div>
         </div>
@@ -226,60 +373,319 @@ const loginAs = (id, nama) => {
 </template>
 
 <style scoped>
-.custom-card { overflow:hidden; border:1px solid var(--gray-200); border-radius:1rem; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
-.card-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; padding:1rem 1.25rem; border-bottom:1px solid var(--gray-100); background:linear-gradient(to bottom,#fff,#f9fafb); }
-.filter-bar {
-    display: grid;
-    grid-template-columns: 240px 140px 160px 130px 130px auto;
-    gap: 0.625rem;
-    align-items: center;
+.filter-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
     margin-bottom: 1.25rem;
 }
-.filter-actions { display:flex; gap:0.5rem; align-items:center; }
-.filter-btn { white-space:nowrap; flex:0 0 auto; padding:0.625rem 1rem; }
-.input-group { display:flex; align-items:center; position:relative; width:100%; }
-.input-group--search .input { width:100%; padding-left:2.25rem; }
-.input-group__text { position:absolute; left:0.875rem; top:50%; transform:translateY(-50%); display:flex; align-items:center; color:var(--gray-400); pointer-events:none; line-height:1; }
-.filter-select {
-    padding: 0.625rem 0.75rem;
-    border: 1px solid var(--gray-300);
-    border-radius: 0.75rem;
-    font-size: 0.8125rem;
-    color: var(--gray-700);
-    background: white;
-    width:100%;
-    transition: border-color 0.2s, box-shadow 0.2s;
+.filter-grid {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.4fr) minmax(120px, 1fr) minmax(160px, 1.2fr) minmax(130px, 1fr) minmax(130px, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
 }
-.filter-select:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(79,70,229,0.15); }
-.toolbar-actions { display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; }
-.toolbar-actions .filter-select { max-width:150px; width:auto; }
-.table-responsive { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
-.table-responsive .m-data-table { min-width:900px; }
-.empty-state { text-align:center; padding:3rem; color:var(--gray-500); }
-.empty-state i { display:block; }
-.pagination-wrap {
-    display:flex; justify-content:space-between; align-items:center;
-    padding:1rem 1.25rem; border-top:1px solid var(--gray-100); gap:1rem; flex-wrap:wrap;
+@media (max-width: 1100px) {
+    .filter-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
 }
-.pagination-info { font-size:0.8125rem; color:var(--gray-600); }
-.pagination { display:flex; gap:0.25rem; flex-wrap:wrap; }
-.page-item { display:inline-flex; }
-.page-link { padding:0.375rem 0.75rem; border-radius:0.5rem; font-size:0.8125rem; color:var(--gray-700); text-decoration:none; border:1px solid var(--gray-200); transition:all 0.2s; }
-.page-link:hover { background:var(--gray-50); }
-.page-item.active .page-link { background:var(--primary); color:white; border-color:var(--primary); }
-.page-item.disabled .page-link { opacity:0.5; cursor:not-allowed; }
-@media (max-width: 1100px) { .filter-bar { grid-template-columns: 1fr 1fr 1fr; } .filter-actions { grid-column: 1 / -1; justify-content:flex-start; } }
-@media (max-width: 900px) { .filter-bar { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 640px) {
-    .container-xl { padding-left:1rem; padding-right:1rem; }
-    .card-header { flex-direction:column; align-items:stretch; }
-    .toolbar-actions { display:grid; grid-template-columns:1fr 1fr; width:100%; }
-    .toolbar-actions .filter-select { max-width:100%; }
-    .filter-bar { grid-template-columns: 1fr; }
-    .filter-actions { justify-content:stretch; }
-    .filter-actions .filter-btn { flex:1; justify-content:center; }
-    .table-responsive .m-data-table { min-width:720px; font-size:0.8125rem; }
-    .pagination-wrap { flex-direction:column; align-items:stretch; text-align:center; }
-    .pagination { justify-content:center; }
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+}
+.search-box-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.search-icon {
+    position: absolute;
+    left: 0.875rem;
+    color: #94a3b8;
+    font-size: 0.8125rem;
+}
+.search-input {
+    padding-left: 2.25rem !important;
+}
+.filter-input {
+    width: 100%;
+    padding: 0.5625rem 0.875rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    color: #1e293b;
+    background: #ffffff;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.filter-input:focus {
+    border-color: #4f46e5;
+}
+.filter-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Data Card */
+.data-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+.table-responsive {
+    overflow-x: auto;
+}
+.solid-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+.solid-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 700;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+    user-select: none;
+}
+.solid-table td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+.solid-table tbody tr:hover {
+    background: #f8fafc;
+}
+.sortable-th {
+    cursor: pointer;
+}
+.sortable-th i {
+    font-size: 0.6875rem;
+    opacity: 0.6;
+    margin-left: 0.25rem;
+}
+.sortable-th:hover {
+    color: #0f172a;
+}
+
+/* Solid Badges */
+.solid-badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.badge-solid-success {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+.badge-solid-danger {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+/* Buttons */
+.solid-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+.solid-btn:hover {
+    opacity: 0.9;
+}
+.btn-indigo-solid {
+    background: #4f46e5;
+    color: #ffffff;
+}
+.btn-white-border {
+    background: #ffffff;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+}
+.btn-white-border:hover {
+    background: #f8fafc;
+}
+.btn-solid-primary {
+    background: #4f46e5;
+    color: #ffffff;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+.btn-solid-secondary {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.action-btn-view {
+    width: 28px;
+    height: 28px;
+    border-radius: 0.375rem;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    text-decoration: none;
+}
+.action-btn-view:hover {
+    background: #dbeafe;
+}
+.action-btn-login {
+    width: 28px;
+    height: 28px;
+    border-radius: 0.375rem;
+    background: #e0f2fe;
+    color: #0284c7;
+    border: 1px solid #bae6fd;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+.action-btn-login:hover {
+    background: #bae6fd;
+}
+
+/* Pagination */
+.pagination-footer {
+    padding: 0.875rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #f1f5f9;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+.pagination-btns {
+    display: flex;
+    gap: 0.25rem;
+}
+.p-btn {
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    color: #334155;
+    text-decoration: none;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+}
+.p-btn:hover {
+    background: #f8fafc;
+}
+.p-active {
+    background: #4f46e5 !important;
+    color: #ffffff !important;
+    border-color: #4f46e5 !important;
+    font-weight: 600;
+}
+.p-disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Modals */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+    padding: 1rem;
+}
+.modal-card {
+    background: #ffffff;
+    border-radius: 0.75rem;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+    overflow: hidden;
+}
+.modal-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.modal-close-btn {
+    border: none;
+    background: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #94a3b8;
+    cursor: pointer;
+}
+.modal-body {
+    padding: 1.25rem;
+}
+.modal-footer {
+    padding: 0.875rem 1.25rem;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    background: #f8fafc;
+}
+.solid-notice {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+}
+.solid-notice-info {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+}
+.modal-select {
+    width: 100%;
+    padding: 0.5625rem 0.875rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    outline: none;
+    background: #ffffff;
+}
+.modal-select:focus {
+    border-color: #4f46e5;
 }
 </style>
+

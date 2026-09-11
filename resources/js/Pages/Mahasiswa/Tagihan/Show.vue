@@ -12,6 +12,7 @@ const props = defineProps({
     vaExpiredAt: String,
 });
 
+const selectedCategory = ref('virtual_account'); // 'virtual_account' | 'transfer'
 const selectedBank = ref(null);
 const vaConfirmed = ref(false);
 
@@ -21,22 +22,23 @@ const form = useForm({
     jumlah_bayar: props.tagihan.nominal,
     nama_pengirim: '',
     bukti_pembayaran: null,
-    payment_type: 'transfer',
+    payment_type: 'virtual_account',
 });
 
 const bankColors = {
     'BNI': { bg: '#003399', text: 'BNI' },
     'BTN': { bg: '#006633', text: 'BTN' },
-    'Mandiri': { bg: '#0033A0', text: 'MDR' },
-    'BRI': { bg: '#008C4A', text: 'BRI' },
+    'Mandiri': { bg: '#0033a0', text: 'MDR' },
+    'BRI': { bg: '#008c4a', text: 'BRI' },
     'BCA': { bg: '#003399', text: 'BCA' },
-    'Bank NTB': { bg: '#1e40af', text: 'NTB' },
-    'NTB Syariah': { bg: '#1e40af', text: 'NTB' },
+    'Bank NTB': { bg: '#0284c7', text: 'NTB' },
+    'NTB Syariah': { bg: '#0f766e', text: 'NTB' },
 };
 
 const getBankStyle = (nama) => {
+    if (!nama) return { bg: '#475569', text: 'BANK' };
     const key = Object.keys(bankColors).find(k => nama.toLowerCase().includes(k.toLowerCase()));
-    return key ? bankColors[key] : { bg: '#6b7280', text: nama.substring(0, 3).toUpperCase() };
+    return key ? bankColors[key] : { bg: '#475569', text: nama.substring(0, 4).toUpperCase() };
 };
 
 const isPaid = computed(() => {
@@ -51,7 +53,35 @@ const statusBadge = computed(() => {
     return { label: 'Belum Dibayar', icon: 'fas fa-clock', cls: 'unpaid' };
 });
 
-const isVA = computed(() => selectedBank.value?.kategori === 'virtual_account');
+const vaMethods = computed(() => {
+    return (props.metodePembayarans || []).filter(m => 
+        m.kategori === 'virtual_account' || 
+        m.nama_metode.toLowerCase().includes('virtual account') || 
+        m.nama_metode.toLowerCase().includes('va')
+    );
+});
+
+const transferMethods = computed(() => {
+    return (props.metodePembayarans || []).filter(m => 
+        m.kategori !== 'virtual_account' && 
+        !m.nama_metode.toLowerCase().includes('virtual account') && 
+        !m.nama_metode.toLowerCase().includes('va')
+    );
+});
+
+const switchCategory = (category) => {
+    selectedCategory.value = category;
+    if (category === 'virtual_account') {
+        selectedBank.value = vaMethods.value[0] || props.metodePembayarans?.[0] || null;
+    } else {
+        selectedBank.value = transferMethods.value[0] || props.metodePembayarans?.[0] || null;
+    }
+    if (selectedBank.value) {
+        selectBank(selectedBank.value);
+    }
+};
+
+const isVA = computed(() => selectedCategory.value === 'virtual_account' || selectedBank.value?.kategori === 'virtual_account');
 
 const vaNumber = computed(() => {
     if (!selectedBank.value) return '';
@@ -225,57 +255,97 @@ const copyVANumber = () => {
                             </div>
                         </div>
 
-                        <!-- Bank Selection -->
+                        <!-- Bank Selection by Category -->
                         <template v-if="!isPaid">
-                            <div class="va-section">
-                                <h3 class="va-section-title">
-                                    <i class="fas fa-university"></i>
-                                    Pilih Metode Pembayaran
-                                </h3>
-                                <div class="va-bank-grid">
-                                    <div
-                                        v-for="bank in metodePembayarans"
-                                        :key="bank.id"
-                                        class="va-bank-card"
-                                        :class="{ selected: selectedBank?.id === bank.id }"
-                                        @click="selectBank(bank)"
+                            <div class="category-selection-container">
+                                <label class="section-label">PILIH JALUR / KATEGORI PEMBAYARAN</label>
+
+                                <div class="category-tabs">
+                                    <button
+                                        type="button"
+                                        class="category-btn"
+                                        :class="{ active: selectedCategory === 'virtual_account' }"
+                                        @click="switchCategory('virtual_account')"
                                     >
-                                        <div class="va-bank-logo" :style="{ background: getBankStyle(bank.nama_metode).bg }">
-                                            {{ getBankStyle(bank.nama_metode).text }}
+                                        <div class="cat-header-row">
+                                            <div class="cat-icon-box cat-va">
+                                                <i class="fas fa-bolt"></i>
+                                            </div>
+                                            <span class="cat-badge-rec">Rekomendasi</span>
                                         </div>
-                                        <div class="va-bank-name">{{ bank.nama_metode }}</div>
-                                        <div class="va-bank-tag" :class="bank.kategori === 'virtual_account' ? 'tag-va' : 'tag-rek'">
-                                            {{ bank.kategori === 'virtual_account' ? 'Virtual Account' : 'Transfer Bank' }}
+                                        <div class="cat-text">
+                                            <div class="cat-title">Virtual Account</div>
+                                            <div class="cat-sub">Otomatis & Konfirmasi Instan</div>
                                         </div>
-                                        <div class="va-bank-check" v-if="selectedBank?.id === bank.id">
-                                            <i class="fas fa-check-circle"></i>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="category-btn"
+                                        :class="{ active: selectedCategory === 'transfer' }"
+                                        @click="switchCategory('transfer')"
+                                    >
+                                        <div class="cat-header-row">
+                                            <div class="cat-icon-box cat-tf">
+                                                <i class="fas fa-money-bill-transfer"></i>
+                                            </div>
+                                            <span class="cat-badge-tf">Manual</span>
                                         </div>
-                                    </div>
+                                        <div class="cat-text">
+                                            <div class="cat-title">Transfer Manual</div>
+                                            <div class="cat-sub">Transfer Rekening & Upload Bukti</div>
+                                        </div>
+                                    </button>
                                 </div>
                             </div>
 
-                            <!-- VA Payment Flow -->
-                            <div v-if="selectedBank && isVA" class="va-payment-panel">
+                            <!-- 1. VIRTUAL ACCOUNT FLOW -->
+                            <div v-if="selectedCategory === 'virtual_account'" class="va-payment-panel">
                                 <div class="va-panel-header">
                                     <div class="va-panel-icon">
-                                        <i class="fas fa-qrcode"></i>
+                                        <i class="fas fa-bolt"></i>
                                     </div>
                                     <div>
-                                        <h3 class="va-panel-title">Virtual Account</h3>
-                                        <p class="va-panel-sub">Bayar melalui ATM, Mobile Banking, atau Internet Banking</p>
+                                        <h3 class="va-panel-title">Virtual Account (Otomatis & Instan)</h3>
+                                        <p class="va-panel-sub">Bayar melalui ATM, Mobile Banking, atau Internet Banking 24/7 tanpa upload struk</p>
                                     </div>
                                 </div>
 
-                                <div class="va-number-box">
-                                    <div class="va-number-label">Nomor Virtual Account</div>
-                                    <div class="va-number-pending">
-                                        <i class="fas fa-lock"></i> Akan diterbitkan setelah konfirmasi
+                                <!-- If multiple VA banks -->
+                                <div v-if="vaMethods.length > 1" style="margin-bottom:1.25rem;">
+                                    <label class="section-sublabel">PILIH BANK VIRTUAL ACCOUNT</label>
+                                    <div class="va-bank-grid">
+                                        <div
+                                            v-for="bank in vaMethods"
+                                            :key="bank.id"
+                                            class="va-bank-card"
+                                            :class="{ selected: selectedBank?.id === bank.id }"
+                                            @click="selectBank(bank)"
+                                        >
+                                            <div class="va-bank-logo" :style="{ background: getBankStyle(bank.nama_metode).bg }">
+                                                {{ getBankStyle(bank.nama_metode).text }}
+                                            </div>
+                                            <div class="va-bank-name">{{ bank.nama_metode }}</div>
+                                            <div class="va-bank-tag tag-va">Virtual Account</div>
+                                            <div class="va-bank-check" v-if="selectedBank?.id === bank.id">
+                                                <i class="fas fa-check-circle"></i>
+                                            </div>
+                                        </div>
                                     </div>
+                                </div>
+
+                                <div class="va-benefit-box">
+                                    <div class="benefit-title"><i class="fas fa-shield-alt"></i> Keunggulan Virtual Account:</div>
+                                    <ul class="benefit-list">
+                                        <li><i class="fas fa-check text-success"></i> Status tagihan otomatis berubah lunas detik itu juga.</li>
+                                        <li><i class="fas fa-check text-success"></i> Tidak perlu upload foto bukti pembayaran manual.</li>
+                                        <li><i class="fas fa-check text-success"></i> Dapat ditransfer dari mobile banking / ATM bank apa saja (BCA, BRI, Mandiri, BNI, dll).</li>
+                                    </ul>
                                 </div>
 
                                 <div class="va-detail-grid">
                                     <div class="va-detail-item">
-                                        <span class="va-detail-label">Nama</span>
+                                        <span class="va-detail-label">Nama Mahasiswa</span>
                                         <span class="va-detail-value">{{ mahasiswa.nama_lengkap }}</span>
                                     </div>
                                     <div class="va-detail-item">
@@ -283,32 +353,32 @@ const copyVANumber = () => {
                                         <span class="va-detail-value font-mono">{{ mahasiswa.nim }}</span>
                                     </div>
                                     <div class="va-detail-item">
-                                        <span class="va-detail-label">Nominal</span>
+                                        <span class="va-detail-label">Nominal Pembayaran</span>
                                         <span class="va-detail-value va-detail-amount">{{ vaAmount }}</span>
                                     </div>
                                     <div class="va-detail-item">
-                                        <span class="va-detail-label">Berlaku Hingga</span>
+                                        <span class="va-detail-label">Batas Waktu Bayar</span>
                                         <span class="va-detail-value">{{ formatDate(tagihan.jatuh_tempo) }}</span>
                                     </div>
                                 </div>
 
                                 <div class="va-steps">
-                                    <h4 class="va-steps-title">Cara Pembayaran</h4>
+                                    <h4 class="va-steps-title">Cara Pembayaran Virtual Account</h4>
                                     <div class="va-step">
                                         <div class="va-step-num">1</div>
-                                        <div class="va-step-text">Klik <strong>Konfirmasi Pembayaran</strong> di bawah untuk mendapatkan nomor VA</div>
+                                        <div class="va-step-text">Klik <strong>Terbitkan Virtual Account</strong> di bawah.</div>
                                     </div>
                                     <div class="va-step">
                                         <div class="va-step-num">2</div>
-                                        <div class="va-step-text">Buka aplikasi <strong>Mobile Banking</strong> atau kunjungi <strong>ATM</strong> terdekat</div>
+                                        <div class="va-step-text">Buka aplikasi <strong>Mobile Banking</strong> atau kunjungi <strong>ATM</strong> bank mana saja.</div>
                                     </div>
                                     <div class="va-step">
                                         <div class="va-step-num">3</div>
-                                        <div class="va-step-text">Pilih menu <strong>Virtual Account</strong> atau <strong>Pembayaran</strong>, masukkan nomor VA</div>
+                                        <div class="va-step-text">Pilih menu <strong>Transfer / Pembayaran Virtual Account</strong> dan masukkan nomor VA yang muncul.</div>
                                     </div>
                                     <div class="va-step">
                                         <div class="va-step-num">4</div>
-                                        <div class="va-step-text">Pastikan data benar, lalu <strong>konfirmasi pembayaran</strong></div>
+                                        <div class="va-step-text">Periksa nominal & nama, lalu konfirmasi dengan PIN Anda. Tagihan lunas instan!</div>
                                     </div>
                                 </div>
 
@@ -321,42 +391,65 @@ const copyVANumber = () => {
                                         :disabled="form.processing"
                                         @click="submitVA"
                                     >
-                                        <i class="fas fa-check-circle"></i>
-                                        {{ form.processing ? 'Memproses...' : 'Konfirmasi Pembayaran' }}
+                                        <i class="fas fa-bolt"></i>
+                                        {{ form.processing ? 'Menerbitkan VA...' : 'Terbitkan Virtual Account & Bayar' }}
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Transfer Payment Flow -->
-                            <div v-if="selectedBank && !isVA" class="va-payment-panel">
+                            <!-- 2. TRANSFER PAYMENT FLOW -->
+                            <div v-else-if="selectedCategory === 'transfer'" class="va-payment-panel">
                                 <div class="va-panel-header">
                                     <div class="va-panel-icon transfer-icon">
-                                        <i class="fas fa-exchange-alt"></i>
+                                        <i class="fas fa-money-bill-transfer"></i>
                                     </div>
                                     <div>
-                                        <h3 class="va-panel-title">Transfer Bank</h3>
-                                        <p class="va-panel-sub">Transfer ke rekening universitas dan upload bukti</p>
+                                        <h3 class="va-panel-title">Transfer Bank Manual</h3>
+                                        <p class="va-panel-sub">Transfer manual ke rekening universitas dan upload bukti transfer</p>
                                     </div>
                                 </div>
 
-                                <div class="va-rek-box" v-if="selectedBank.no_rekening">
-                                    <div class="va-rek-label">Nomor Rekening</div>
-                                    <div class="va-rek-value font-mono">{{ selectedBank.no_rekening }}</div>
-                                    <div class="va-rek-bank">{{ selectedBank.nama_metode }}</div>
+                                <!-- Bank destination grid -->
+                                <div style="margin-bottom:1.25rem;">
+                                    <label class="section-sublabel">PILIH REKENING BANK TUJUAN</label>
+                                    <div class="va-bank-grid">
+                                        <div
+                                            v-for="bank in transferMethods"
+                                            :key="bank.id"
+                                            class="va-bank-card"
+                                            :class="{ selected: selectedBank?.id === bank.id }"
+                                            @click="selectBank(bank)"
+                                        >
+                                            <div class="va-bank-logo" :style="{ background: getBankStyle(bank.nama_metode).bg }">
+                                                {{ getBankStyle(bank.nama_metode).text }}
+                                            </div>
+                                            <div class="va-bank-name">{{ bank.nama_metode }}</div>
+                                            <div class="va-bank-tag tag-rek font-mono">{{ bank.no_rekening || '-' }}</div>
+                                            <div class="va-bank-check" v-if="selectedBank?.id === bank.id">
+                                                <i class="fas fa-check-circle"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="va-rek-box" v-if="selectedBank">
+                                    <div class="va-rek-label">Nomor Rekening Tujuan</div>
+                                    <div class="va-rek-value font-mono">{{ selectedBank.no_rekening || '-' }}</div>
+                                    <div class="va-rek-bank">{{ selectedBank.nama_metode }} a.n Universitas Bumigora</div>
                                 </div>
 
                                 <div class="va-form-group">
-                                    <label class="va-form-label">Nama Pengirim</label>
+                                    <label class="va-form-label">Nama Pemilik Rekening Pengirim <span class="text-danger">*</span></label>
                                     <input
                                         v-model="form.nama_pengirim"
                                         type="text"
                                         class="va-form-control"
-                                        placeholder="Masukkan nama yang melakukan transfer"
+                                        placeholder="Masukkan nama pengirim sesuai rekening/tabungan"
                                     />
                                 </div>
 
                                 <div class="va-form-group">
-                                    <label class="va-form-label">Bukti Pembayaran</label>
+                                    <label class="va-form-label">Upload Bukti Pembayaran <span class="text-danger">*</span></label>
                                     <div class="va-upload-area" @click="$refs.fileInput.click()">
                                         <input
                                             ref="fileInput"
@@ -381,8 +474,8 @@ const copyVANumber = () => {
                                 <div class="va-alert va-alert-info">
                                     <i class="fas fa-info-circle"></i>
                                     <div>
-                                        <strong>Catatan</strong>
-                                        <p>Pembayaran akan diverifikasi oleh admin dalam 1×24 jam.</p>
+                                        <strong>Verifikasi Manual Admin</strong>
+                                        <p>Pembayaran transfer manual akan dicek dan diverifikasi oleh admin keuangan dalam 1×24 jam kerja.</p>
                                     </div>
                                 </div>
 
@@ -396,13 +489,13 @@ const copyVANumber = () => {
                                         @click="submitTransfer"
                                     >
                                         <i class="fas fa-paper-plane"></i>
-                                        {{ form.processing ? 'Mengirim...' : 'Kirim Pembayaran' }}
+                                        {{ form.processing ? 'Mengirim Bukti...' : 'Kirim Bukti Pembayaran' }}
                                     </button>
                                 </div>
                             </div>
 
                             <!-- Errors -->
-                            <div v-if="Object.keys(form.errors).length" class="va-alert va-alert-danger">
+                            <div v-if="Object.keys(form.errors).length" class="va-alert va-alert-danger" style="margin-top:1rem;">
                                 <i class="fas fa-exclamation-circle"></i>
                                 <div>
                                     <strong>Terjadi Kesalahan</strong>
@@ -445,9 +538,9 @@ const copyVANumber = () => {
 
 /* --- Header --- */
 .va-card-header {
-    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    background: #1e293b;
     color: white;
-    padding: 1.75rem 2rem;
+    padding: 1.5rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -461,7 +554,7 @@ const copyVANumber = () => {
 }
 .va-header-sub {
     font-size: 0.875rem;
-    opacity: 0.85;
+    color: #94a3b8;
     margin: 0.25rem 0 0;
 }
 .va-header-badge {
@@ -567,10 +660,10 @@ const copyVANumber = () => {
 }
 .font-mono { font-family: 'SF Mono', 'Fira Code', monospace; }
 
-/* --- Amount Box --- */
+/* --- Amount Box (Solid White / Slate Box) --- */
 .va-amount-box {
-    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-    border: 2px solid #818cf8;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
     border-radius: 0.75rem;
     padding: 1.5rem;
     text-align: center;
@@ -578,26 +671,132 @@ const copyVANumber = () => {
 }
 .va-amount-label {
     font-size: 0.8125rem;
-    color: #6366f1;
-    font-weight: 600;
+    color: #64748b;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
 }
 .va-amount-value {
     font-size: 2.25rem;
-    font-weight: 700;
+    font-weight: 800;
     color: #4f46e5;
     margin: 0.375rem 0;
 }
 .va-amount-countdown {
     font-size: 0.8125rem;
-    color: #6366f1;
+    color: #b45309;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.375rem;
 }
 .va-amount-countdown i { font-size: 0.875rem; }
+
+/* --- Labels & Category Selector --- */
+.section-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #334155;
+    margin-bottom: 0.625rem;
+}
+
+.section-sublabel {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+}
+
+.category-selection-container {
+    margin-bottom: 1.5rem;
+}
+
+.category-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.category-btn {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 0.625rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+}
+
+.category-btn:hover {
+    border-color: #94a3b8;
+    background: #f8fafc;
+}
+
+.category-btn.active {
+    border-color: #4f46e5;
+    background: #f5f3ff;
+    box-shadow: 0 0 0 1px #4f46e5;
+}
+
+.cat-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+.cat-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.cat-va { background: #eef2ff; color: #4f46e5; }
+.cat-tf { background: #e0f2fe; color: #0284c7; }
+
+.cat-badge-rec {
+    background: #dcfce7;
+    color: #166534;
+    font-size: 0.625rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 1rem;
+}
+
+.cat-badge-tf {
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 0.625rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 1rem;
+}
+
+.cat-title {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.15rem;
+}
+
+.cat-sub {
+    font-size: 0.75rem;
+    color: #64748b;
+    line-height: 1.3;
+}
 
 /* --- Section --- */
 .va-section { margin-bottom: 1.5rem; }
@@ -619,38 +818,39 @@ const copyVANumber = () => {
     gap: 0.75rem;
 }
 .va-bank-card {
-    border: 2px solid #e5e7eb;
+    border: 1.5px solid #cbd5e1;
     border-radius: 0.75rem;
-    padding: 1.25rem;
+    padding: 1rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s;
     text-align: center;
     position: relative;
+    background: #ffffff;
 }
 .va-bank-card:hover {
-    border-color: #818cf8;
-    background: #f9fafb;
+    border-color: #94a3b8;
+    background: #f8fafc;
 }
 .va-bank-card.selected {
     border-color: #4f46e5;
-    background: #eef2ff;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    background: #f5f3ff;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
 }
 .va-bank-logo {
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 0.75rem;
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 0.625rem;
     border-radius: 0.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.125rem;
-    font-weight: 700;
+    font-size: 0.875rem;
+    font-weight: 800;
     color: white;
 }
 .va-bank-name {
-    font-weight: 600;
-    color: #1f2937;
+    font-weight: 700;
+    color: #0f172a;
     font-size: 0.8125rem;
     margin-bottom: 0.25rem;
 }
@@ -661,28 +861,64 @@ const copyVANumber = () => {
     font-size: 0.625rem;
     font-weight: 600;
 }
-.va-bank-tag.tag-va { background: #ede9fe; color: #6d28d9; }
-.va-bank-tag.tag-rek { background: #dbeafe; color: #1e40af; }
+.va-bank-tag.tag-va { background: #dcfce7; color: #166534; }
+.va-bank-tag.tag-rek { background: #f1f5f9; color: #334155; }
 .va-bank-check {
     position: absolute;
     top: 0.5rem;
     right: 0.5rem;
     color: #4f46e5;
-    font-size: 1.25rem;
+    font-size: 1.125rem;
+}
+
+/* --- Benefit Box --- */
+.va-benefit-box {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 0.5rem;
+    padding: 0.875rem 1rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.8125rem;
+    color: #166534;
+}
+
+.benefit-title {
+    font-weight: 700;
+    margin-bottom: 0.375rem;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.benefit-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+.benefit-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.375rem;
+}
+
+.benefit-list li i {
+    margin-top: 0.15rem;
+    font-size: 0.6875rem;
 }
 
 /* --- Payment Panel --- */
 .va-payment-panel {
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
     border-radius: 1rem;
     padding: 1.75rem;
-    margin-top: 1.5rem;
-    animation: vaSlideIn 0.25s ease;
-}
-@keyframes vaSlideIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    margin-top: 1rem;
 }
 
 .va-panel-header {
@@ -691,7 +927,7 @@ const copyVANumber = () => {
     gap: 1rem;
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e2e8f0;
 }
 .va-panel-icon {
     width: 48px;
@@ -705,64 +941,17 @@ const copyVANumber = () => {
     font-size: 1.25rem;
     flex-shrink: 0;
 }
-.va-panel-icon.transfer-icon { background: #0891b2; }
+.va-panel-icon.transfer-icon { background: #0284c7; }
 .va-panel-title {
     font-size: 1.125rem;
     font-weight: 700;
-    color: #1f2937;
+    color: #0f172a;
     margin: 0;
 }
 .va-panel-sub {
     font-size: 0.8125rem;
-    color: #6b7280;
+    color: #64748b;
     margin: 0.125rem 0 0;
-}
-
-/* --- VA Number Box --- */
-.va-number-box {
-    background: #f9fafb;
-    border: 2px dashed #d1d5db;
-    border-radius: 0.75rem;
-    padding: 2rem;
-    text-align: center;
-    margin-bottom: 1.5rem;
-}
-.va-number-label {
-    font-size: 0.75rem;
-    color: #6b7280;
-    text-transform: uppercase;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    margin-bottom: 0.5rem;
-}
-.va-number-pending {
-    color: #9ca3af;
-    font-size: 0.9rem;
-}
-.va-number-pending i {
-    margin-right: 0.5rem;
-}
-.va-number-value {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #4f46e5;
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    letter-spacing: 2px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    transition: color 0.2s;
-}
-.va-number-value:hover { color: #4338ca; }
-.va-copy-icon {
-    font-size: 1rem;
-    opacity: 0.5;
-}
-.va-number-bank {
-    font-size: 0.8125rem;
-    color: #6b7280;
-    margin-top: 0.375rem;
 }
 
 /* --- VA Detail Grid --- */
@@ -773,112 +962,93 @@ const copyVANumber = () => {
     margin-bottom: 1.5rem;
 }
 .va-detail-item {
-    background: white;
-    border: 1px solid #e5e7eb;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     border-radius: 0.5rem;
-    padding: 0.75rem;
+    padding: 0.75rem 1rem;
 }
 .va-detail-label {
     display: block;
     font-size: 0.6875rem;
-    color: #9ca3af;
+    color: #64748b;
     text-transform: uppercase;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.03em;
     margin-bottom: 0.25rem;
 }
 .va-detail-value {
     display: block;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #1f2937;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #0f172a;
 }
 .va-detail-amount { color: #4f46e5; }
 
 /* --- Steps --- */
 .va-steps {
     margin-bottom: 1.5rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
 }
 .va-steps-title {
     font-size: 0.875rem;
     font-weight: 700;
-    color: #1f2937;
+    color: #0f172a;
     margin: 0 0 0.75rem;
 }
 .va-step {
     display: flex;
     align-items: flex-start;
     gap: 0.75rem;
-    padding: 0.625rem 0;
+    padding: 0.375rem 0;
 }
 .va-step-num {
-    width: 28px;
-    height: 28px;
-    background: #4f46e5;
+    width: 24px;
+    height: 24px;
+    background: #334155;
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     font-weight: 700;
     flex-shrink: 0;
 }
 .va-step-text {
-    font-size: 0.875rem;
-    color: #374151;
+    font-size: 0.8125rem;
+    color: #334155;
     line-height: 1.5;
-    padding-top: 0.25rem;
-}
-.va-step-number {
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    color: #4f46e5;
-    letter-spacing: 1px;
-}
-
-/* --- Confirm Checkbox --- */
-.va-confirm-section {
-    margin-bottom: 1.5rem;
-}
-.va-checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    font-size: 0.875rem;
-    color: #374151;
-    cursor: pointer;
-}
-.va-checkbox {
-    width: 18px;
-    height: 18px;
-    accent-color: #4f46e5;
-    cursor: pointer;
 }
 
 /* --- Rekening Box --- */
 .va-rek-box {
-    background: white;
-    border: 2px solid #e5e7eb;
-    border-radius: 0.75rem;
-    padding: 1.25rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 1.125rem;
     text-align: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
 }
 .va-rek-label {
-    font-size: 0.75rem;
-    color: #6b7280;
+    font-size: 0.6875rem;
+    color: #64748b;
     text-transform: uppercase;
-    font-weight: 600;
-    margin-bottom: 0.375rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.25rem;
 }
 .va-rek-value {
     font-size: 1.5rem;
-    font-weight: 700;
-    color: #1f2937;
+    font-weight: 800;
+    color: #0f172a;
     letter-spacing: 1px;
 }
 .va-rek-bank {
     font-size: 0.8125rem;
-    color: #6b7280;
+    color: #475569;
     margin-top: 0.25rem;
 }
 
@@ -890,75 +1060,75 @@ const copyVANumber = () => {
     display: block;
     font-size: 0.8125rem;
     font-weight: 600;
-    color: #374151;
+    color: #334155;
     margin-bottom: 0.375rem;
 }
 .va-form-control {
     width: 100%;
     padding: 0.625rem 0.875rem;
-    border: 1.5px solid #d1d5db;
+    border: 1.5px solid #cbd5e1;
     border-radius: 0.5rem;
     font-size: 0.875rem;
-    font-family: inherit;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
 }
 .va-form-control:focus {
     outline: none;
     border-color: #4f46e5;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
 }
 
 /* --- Upload Area --- */
 .va-upload-area {
-    border: 2px dashed #d1d5db;
+    border: 1.5px dashed #cbd5e1;
     border-radius: 0.75rem;
-    padding: 2rem;
+    padding: 1.5rem;
     text-align: center;
     cursor: pointer;
-    transition: all 0.2s;
+    background: #f8fafc;
+    transition: all 0.15s;
 }
 .va-upload-area:hover {
-    border-color: #818cf8;
+    border-color: #4f46e5;
     background: #f5f3ff;
 }
 .va-file-input { display: none; }
 .va-upload-placeholder {
-    color: #9ca3af;
+    color: #64748b;
 }
 .va-upload-placeholder i {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
+    font-size: 1.75rem;
+    margin-bottom: 0.375rem;
     display: block;
-    color: #c4b5fd;
+    color: #64748b;
 }
 .va-upload-placeholder span {
     display: block;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     font-weight: 600;
-    color: #6b7280;
-    margin-bottom: 0.25rem;
+    color: #0f172a;
+    margin-bottom: 0.125rem;
 }
 .va-upload-placeholder small {
-    font-size: 0.75rem;
-    color: #9ca3af;
+    font-size: 0.6875rem;
+    color: #94a3b8;
 }
 .va-upload-preview {
     color: #4f46e5;
 }
 .va-upload-preview i {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
+    font-size: 1.75rem;
+    margin-bottom: 0.375rem;
     display: block;
 }
 .va-upload-preview span {
     display: block;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     font-weight: 600;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.125rem;
 }
 .va-upload-preview small {
-    font-size: 0.75rem;
-    color: #9ca3af;
+    font-size: 0.6875rem;
+    color: #94a3b8;
 }
 
 /* --- Buttons --- */
@@ -968,44 +1138,38 @@ const copyVANumber = () => {
     justify-content: flex-end;
     margin-top: 1.5rem;
     padding-top: 1.5rem;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid #e2e8f0;
 }
 .va-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
+    padding: 0.625rem 1.25rem;
     border-radius: 0.5rem;
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s;
     border: none;
     text-decoration: none;
 }
 .va-btn-primary {
     background: #4f46e5;
     color: white;
-    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
 }
 .va-btn-primary:hover:not(:disabled) {
     background: #4338ca;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
 }
 .va-btn-primary:disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
-    transform: none;
 }
 .va-btn-secondary {
-    background: white;
-    color: #374151;
-    border: 1.5px solid #d1d5db;
+    background: #f1f5f9;
+    color: #334155;
 }
 .va-btn-secondary:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
+    background: #e2e8f0;
 }
 
 /* --- Paid Panel --- */
@@ -1015,29 +1179,45 @@ const copyVANumber = () => {
 }
 .va-paid-icon {
     font-size: 4rem;
-    color: #10b981;
+    color: #16a34a;
     margin-bottom: 1rem;
 }
 .va-paid-panel h3 {
     font-size: 1.25rem;
-    font-weight: 700;
-    color: #1f2937;
+    font-weight: 800;
+    color: #0f172a;
     margin-bottom: 0.5rem;
 }
 .va-paid-panel p {
-    color: #6b7280;
+    color: #64748b;
     margin-bottom: 1.5rem;
 }
 
 .beasiswa-tagihan-box {
-    display:flex; gap:0.75rem; align-items:center;
-    background: linear-gradient(135deg,#ecfdf5 0%,#f0fdfa 100%);
-    border:1.5px solid #6ee7b7; border-radius:0.75rem; padding:0.875rem 1rem; margin-bottom:1.25rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 0.75rem;
+    padding: 0.875rem 1rem;
+    margin-bottom: 1.25rem;
 }
 .beasiswa-tagihan-box .beasiswa-icon {
-    width:2.5rem; height:2.5rem; border-radius:0.75rem; background:#10b981; color:#fff;
-    display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.5rem;
+    background: #059669;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
 }
+
+.text-danger { color: #dc2626; }
+.text-success { color: #16a34a; }
 
 /* --- Responsive --- */
 @media (max-width: 768px) {
@@ -1047,12 +1227,12 @@ const copyVANumber = () => {
         align-items: flex-start;
     }
     .va-card-body { padding: 1.25rem; }
+    .category-tabs { grid-template-columns: 1fr; }
     .va-header-title { font-size: 1.125rem; }
     .va-info-grid { grid-template-columns: 1fr; }
     .va-amount-value { font-size: 1.75rem; }
     .va-bank-grid { grid-template-columns: 1fr; }
     .va-detail-grid { grid-template-columns: 1fr; }
-    .va-number-value { font-size: 1.25rem; letter-spacing: 1px; }
     .va-actions { flex-direction: column; }
     .va-btn { width: 100%; justify-content: center; }
 }

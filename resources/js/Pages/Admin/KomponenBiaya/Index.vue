@@ -11,6 +11,10 @@ const showModal = ref(false);
 const editMode = ref(false);
 const editId = ref(null);
 
+const showDeleteModal = ref(false);
+const showBlockedModal = ref(false);
+const itemToDelete = ref(null);
+
 const form = useForm({
     nama: '',
     kode: '',
@@ -56,16 +60,24 @@ const submit = () => {
     }
 };
 
-const deleteItem = (item) => {
+const confirmDelete = (item) => {
+    itemToDelete.value = item;
     if (item.konfigurasis_count > 0) {
-        alert('Komponen ini tidak bisa dihapus karena masih memiliki data konfigurasi biaya.');
-        return;
+        showBlockedModal.value = true;
+    } else {
+        showDeleteModal.value = true;
     }
-    if (confirm(`Yakin ingin menghapus "${item.nama}"?`)) {
-        router.delete(route('admin.komponen-biaya.destroy', item.id), {
-            preserveScroll: true,
-        });
-    }
+};
+
+const executeDelete = () => {
+    if (!itemToDelete.value) return;
+    router.delete(route('admin.komponen-biaya.destroy', itemToDelete.value.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            showDeleteModal.value = false;
+            itemToDelete.value = null;
+        }
+    });
 };
 
 const toggleStatus = (item) => {
@@ -122,7 +134,7 @@ const toggleStatus = (item) => {
                                                 <button class="m-btn m-btn-sm m-btn-secondary" @click="openEdit(item)" title="Edit">
                                                     <i class="fas fa-pen"></i>
                                                 </button>
-                                                <button class="m-btn m-btn-sm m-btn-danger" @click="deleteItem(item)" title="Hapus" :disabled="item.konfigurasis_count > 0" :style="item.konfigurasis_count > 0 ? 'opacity:0.3;cursor:not-allowed;' : ''">
+                                                <button class="m-btn m-btn-sm m-btn-danger" @click="confirmDelete(item)" title="Hapus">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </div>
@@ -182,6 +194,52 @@ const toggleStatus = (item) => {
                     </form>
                 </div>
             </div>
+
+            <!-- Modal Blocked Deletion -->
+            <div v-if="showBlockedModal" class="modal-overlay" @click.self="showBlockedModal = false">
+                <div class="modal-box" style="max-width: 440px;">
+                    <div class="modal-header">
+                        <h3 style="color: #d97706; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-exclamation-triangle"></i> Tidak Dapat Dihapus
+                        </h3>
+                        <button class="modal-close" @click="showBlockedModal = false"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+                        <p style="margin: 0 0 1rem; color: #475569; font-size: 0.875rem;">
+                            Komponen <strong>{{ itemToDelete?.nama }}</strong> tidak dapat dihapus karena masih digunakan dalam <strong>{{ itemToDelete?.konfigurasis_count }}</strong> konfigurasi biaya UKT aktif.
+                        </p>
+                        <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 0.5rem; padding: 0.875rem; font-size: 0.8125rem; color: #92400e;">
+                            Silakan hapus atau ubah konfigurasi biaya terkait terlebih dahulu sebelum menghapus jenis komponen ini.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="m-btn m-btn-primary" @click="showBlockedModal = false">Mengerti</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Delete Confirmation -->
+            <div v-if="showDeleteModal" class="modal-overlay" @click.self="showDeleteModal = false">
+                <div class="modal-box" style="max-width: 440px;">
+                    <div class="modal-header">
+                        <h3 style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-trash-alt"></i> Konfirmasi Hapus
+                        </h3>
+                        <button class="modal-close" @click="showDeleteModal = false"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+                        <p style="margin: 0 0 1rem; color: #475569; font-size: 0.875rem;">
+                            Apakah Anda yakin ingin menghapus komponen <strong>{{ itemToDelete?.nama }}</strong> ({{ itemToDelete?.kode }})?
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="m-btn m-btn-secondary" @click="showDeleteModal = false">Batal</button>
+                        <button type="button" class="m-btn m-btn-danger" @click="executeDelete">
+                            <i class="fas fa-trash"></i> Ya, Hapus
+                        </button>
+                    </div>
+                </div>
+            </div>
         </Teleport>
     </AuthenticatedLayout>
 </template>
@@ -189,21 +247,21 @@ const toggleStatus = (item) => {
 <style scoped>
 .form-group { margin-bottom: 1rem; }
 .form-label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 0.375rem; }
-.form-control { width: 100%; padding: 0.625rem 0.875rem; border: 1px solid var(--gray-300); border-radius: 0.75rem; font-size: 0.875rem; transition: border-color 0.2s, box-shadow 0.2s; }
-.form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); }
+.form-control { width: 100%; padding: 0.625rem 0.875rem; border: 1px solid var(--gray-300); border-radius: 0.75rem; font-size: 0.875rem; transition: border-color 0.2s, box-shadow 0.2s; background: #fff; }
+.form-control:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
 .form-error { font-size: 0.75rem; color: var(--danger); margin-top: 0.25rem; }
 .toggle-label { display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem; }
-.toggle-label input[type="checkbox"] { width: 1rem; height: 1rem; accent-color: var(--primary); }
-.modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
-.modal-box { background: white; border-radius: 1rem; width: 100%; max-width: 480px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15); }
+.toggle-label input[type="checkbox"] { width: 1rem; height: 1rem; accent-color: #2563eb; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+.modal-box { background: white; border-radius: 1rem; width: 100%; max-width: 480px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--gray-200); }
 .modal-header h3 { margin: 0; font-size: 1.125rem; font-weight: 700; color: var(--gray-900); }
 .modal-close { background: none; border: none; font-size: 1.125rem; color: var(--gray-500); cursor: pointer; padding: 0.25rem; }
 .modal-close:hover { color: var(--gray-800); }
 .modal-body { padding: 1.5rem; }
-.modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--gray-200); }
-.m-btn-danger { background: var(--danger); color: white; }
-.m-btn-danger:hover { background: #dc2626; }
-.m-btn-warning { background: var(--warning); color: white; }
-.m-btn-warning:hover { background: #d97706; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--gray-200); background: #f8fafc; border-bottom-left-radius: 1rem; border-bottom-right-radius: 1rem; }
+.m-btn-danger { background: #dc2626; color: white; }
+.m-btn-danger:hover { background: #b91c1c; }
+.m-btn-warning { background: #d97706; color: white; }
+.m-btn-warning:hover { background: #b45309; }
 </style>

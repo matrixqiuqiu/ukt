@@ -51,15 +51,61 @@ class BiayaKonfigurasiController extends Controller
             $summary[$key]['komponen_count']++;
         }
 
+        $allKomponens = KomponenBiaya::withCount('konfigurasis')->latest()->get();
+
         return Inertia::render('Admin/Biaya/Index', [
             'konfigurasis' => $konfigurasis,
             'angkatans' => $angkatans,
             'jurusans' => $jurusans,
             'komponens' => $komponens,
+            'allKomponens' => $allKomponens,
             'summary' => array_values($summary),
             'filters' => $request->only('angkatan', 'jurusan'),
+            'activeTab' => $request->query('tab', 'biaya'),
             'semesterAktif' => SemesterAktif::instance(),
         ]);
+    }
+
+    public function copyAngkatan(Request $request)
+    {
+        $request->validate([
+            'source_angkatan' => 'required|digits:4|integer',
+            'target_angkatan' => 'required|digits:4|integer|different:source_angkatan',
+        ]);
+
+        $sourceConfigs = BiayaKonfigurasi::where('angkatan', $request->source_angkatan)->get();
+
+        if ($sourceConfigs->isEmpty()) {
+            return back()->with('error', 'Tidak ada data tarif pada angkatan sumber ' . $request->source_angkatan);
+        }
+
+        $copied = 0;
+        $skipped = 0;
+
+        foreach ($sourceConfigs as $config) {
+            $exists = BiayaKonfigurasi::where([
+                'komponen_biaya_id' => $config->komponen_biaya_id,
+                'angkatan' => $request->target_angkatan,
+                'jurusan' => $config->jurusan,
+            ])->exists();
+
+            if ($exists) {
+                $skipped++;
+                continue;
+            }
+
+            BiayaKonfigurasi::create([
+                'komponen_biaya_id' => $config->komponen_biaya_id,
+                'angkatan' => $request->target_angkatan,
+                'jurusan' => $config->jurusan,
+                'nominal' => $config->nominal,
+                'status_aktif' => $config->status_aktif,
+            ]);
+
+            $copied++;
+        }
+
+        return back()->with('success', "Berhasil menyalin {$copied} konfigurasi tarif ke angkatan {$request->target_angkatan}" . ($skipped > 0 ? " ({$skipped} dilewati karena sudah ada)." : "."));
     }
 
     public function store(Request $request)

@@ -4,344 +4,347 @@ import { computed } from 'vue';
 
 const page = usePage();
 const theme = computed(() => page.props.theme);
-const logoUrl = computed(() => theme.value?.invoice_logo || '');
-const websiteName = computed(() => theme.value?.website_name || 'UKT System');
-const websiteShortName = computed(() => theme.value?.website_short_name || websiteName.value);
-const websiteTagline = computed(() => theme.value?.website_tagline || 'Kelola pembayaran uang kuliah tunggal Anda secara mudah dan cepat melalui platform daring kami.');
-const websiteFooterText = computed(() => theme.value?.website_footer_text || ('&copy; ' + new Date().getFullYear() + ' ' + (theme.value?.invoice_institution_name || 'Institusi') + '. All rights reserved.'));
-const institutionName = computed(() => theme.value?.invoice_institution_name || 'Institusi');
+const logoUrl = computed(() => theme.value?.logo_url || theme.value?.invoice_logo || '');
+const websiteName = computed(() => theme.value?.website_name || 'Sistem Informasi UKT');
+const websiteShortName = computed(() => theme.value?.website_short_name || 'UKT UBG');
+const websiteTagline = computed(() => theme.value?.website_tagline || 'Sistem Pengelolaan & Pembayaran UKT Online Mahasiswa');
+const websiteFooterText = computed(() => theme.value?.website_footer_text || ('© ' + new Date().getFullYear() + ' ' + (theme.value?.invoice_institution_name || 'Universitas Bumigora') + '. All rights reserved.'));
+const institutionName = computed(() => theme.value?.invoice_institution_name || 'Universitas Bumigora');
 </script>
 
 <template>
-    <Head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    </Head>
+  <Head>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  </Head>
 
-    <div class="auth">
-        <!-- LEFT: Form Panel -->
-        <section class="auth__panel">
-            <div class="auth__card">
-                <div class="auth__form">
-                    <slot />
-                    <div class="auth__footer" v-html="websiteFooterText"></div>
-                </div>
+  <div class="auth-wrapper">
+    <!-- LEFT: Form Card Panel -->
+    <section class="auth-panel-left">
+      <div class="auth-form-card">
+        <slot />
+        <div class="auth-card-footer" v-html="websiteFooterText"></div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Brand & Feature Panel -->
+    <aside class="auth-panel-right">
+      <div class="brand-header">
+        <Link href="/" class="brand-link">
+          <div class="brand-logo-wrap" :class="{ 'has-img': logoUrl }">
+            <img v-if="logoUrl" :src="logoUrl" alt="Logo" class="brand-logo-img" />
+            <i v-else class="fas fa-university brand-logo-icon"></i>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">{{ websiteShortName }}</span>
+            <span class="brand-subtitle">{{ institutionName }}</span>
+          </div>
+        </Link>
+      </div>
+
+      <div class="brand-body">
+        <div class="brand-pill">
+          <span class="pill-dot"></span> Portal Resmi Pembayaran Biaya Kuliah
+        </div>
+        <h2 class="brand-heading">
+          Sistem Pembayaran
+          <span class="heading-accent">{{ websiteShortName }} Terpadu</span>
+        </h2>
+        <p class="brand-description">
+          {{ websiteTagline }}
+        </p>
+
+        <div class="features-list">
+          <div class="feature-item">
+            <div class="feature-icon">
+              <i class="fas fa-shield-alt"></i>
             </div>
-        </section>
-
-        <!-- RIGHT: Brand Panel -->
-        <aside class="auth__aside">
-            <Link href="/" class="auth__brand">
-                <span class="auth__brand-mark" :class="{ 'has-logo': logoUrl }">
-                    <img v-if="logoUrl" :src="logoUrl" alt="Logo" class="auth__brand-logo" />
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M12 1.5l3.4 7.1 7.1 3.4-7.1 3.4-3.4 7.1-3.4-7.1L1.5 12l7.1-3.4z" opacity=".45"/>
-                        <path d="M12 1.5l3.4 7.1L12 12 8.6 8.6z"/>
-                    </svg>
-                </span>
-                <span class="auth__brand-text">
-                    <span class="auth__brand-name">{{ websiteName }}</span>
-                </span>
-            </Link>
-
-            <div class="auth__pitch">
-                <h2 class="auth__pitch-title">
-                    Sistem Pembayaran
-                    <span>{{ websiteShortName }} Online</span>
-                </h2>
-                <p class="auth__pitch-lede">
-                    {{ websiteTagline }}
-                </p>
-                <ul class="auth__features">
-                    <li>
-                        <span class="auth__feature-icon"><i class="fas fa-shield-halved"></i></span>
-                        <span>
-                            <strong>Aman &amp; Terpercaya</strong>
-                            <small>Transaksi diproses melalui gateway bank resmi</small>
-                        </span>
-                    </li>
-                    <li>
-                        <span class="auth__feature-icon"><i class="fas fa-bolt"></i></span>
-                        <span>
-                            <strong>Cepat &amp; Praktis</strong>
-                            <small>Bayar kapan saja via Virtual Account atau transfer</small>
-                        </span>
-                    </li>
-                    <li>
-                        <span class="auth__feature-icon"><i class="fas fa-file-invoice"></i></span>
-                        <span>
-                            <strong>Bukti Digital</strong>
-                            <small>Riwayat dan bukti pembayaran tersimpan otomatis</small>
-                        </span>
-                    </li>
-                </ul>
+            <div class="feature-content">
+              <h4>Bank NTB Syariah Virtual Account</h4>
+              <p>Nomor VA resmi unik terbit otomatis dengan jatuh tempo akurat</p>
             </div>
+          </div>
 
-            <div class="auth__aside-footer" v-html="websiteFooterText"></div>
-        </aside>
-    </div>
+          <div class="feature-item">
+            <div class="feature-icon">
+              <i class="fas fa-bolt"></i>
+            </div>
+            <div class="feature-content">
+              <h4>Verifikasi & Sinkronisasi Instan</h4>
+              <p>Status lunas otomatis tersinkronisasi dengan portal SIAKAD</p>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon">
+              <i class="fas fa-file-invoice-dollar"></i>
+            </div>
+            <div class="feature-content">
+              <h4>Kwitansi & Bukti Sah Digital</h4>
+              <p>Unduh invoice resmi berstempel dan cetak kapan saja</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="brand-footer">
+        <div class="footer-security">
+          <i class="fas fa-lock"></i> Koneksi Terenkripsi &amp; Terintegrasi API SIAKAD
+        </div>
+      </div>
+    </aside>
+  </div>
 </template>
 
 <style scoped>
-/* ============================================
-   AUTH LAYOUT - ELEGANT
-   ============================================ */
-.auth {
-    display: flex;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #f5f6fb 0%, #edf0f9 55%, #e7ebf7 100%);
-    position: relative;
-    overflow: hidden;
+.auth-wrapper {
+  display: flex;
+  min-height: 100vh;
+  background: #f8fafc;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* Decorative background orbs */
-.auth::before,
-.auth::after {
-    content: '';
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
-}
-.auth::before {
-    width: 480px;
-    height: 480px;
-    top: -180px;
-    left: -160px;
-    background: radial-gradient(circle, rgba(99, 102, 241, 0.14) 0%, transparent 65%);
-}
-.auth::after {
-    width: 520px;
-    height: 520px;
-    bottom: -220px;
-    left: 32%;
-    background: radial-gradient(circle, rgba(129, 140, 248, 0.12) 0%, transparent 65%);
+/* Left Panel (Form) */
+.auth-panel-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
 }
 
-/* --- Left panel --- */
-.auth__panel {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    background: transparent;
-    position: relative;
-    z-index: 1;
+.auth-form-card {
+  width: 100%;
+  max-width: 460px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  padding: 2.5rem 2.25rem 2rem;
 }
 
-/* Floating form card */
-.auth__card {
-    width: 100%;
-    max-width: 460px;
-    background: #ffffff;
-    border-radius: 1.5rem;
-    border: 1px solid rgba(226, 232, 240, 0.7);
-    box-shadow: 0 24px 60px -12px rgba(30, 27, 75, 0.18);
-    padding: 2.75rem 2.5rem 2rem;
-    position: relative;
-    animation: authCardIn 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes authCardIn {
-    from {
-        opacity: 0;
-        transform: translateY(16px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.auth-card-footer {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #f1f5f9;
+  line-height: 1.5;
 }
 
-.auth__form {
-    width: 100%;
-    max-width: none;
-    gap: 1.5rem;
+/* Right Panel (Brand) */
+.auth-panel-right {
+  width: min(45%, 540px);
+  background: #0f172a;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 3rem 2.75rem;
+  margin: 1rem;
+  border-radius: 1.25rem;
+  border: 1px solid #1e293b;
+  position: relative;
+  overflow: hidden;
 }
 
-/* --- Right brand panel --- */
-.auth__aside {
-    width: min(46%, 560px);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 3rem 2.75rem;
-    margin: 1.25rem;
-    background: linear-gradient(160deg, #101a3c 0%, #1e1b4b 55%, #312e81 100%);
-    color: white;
-    position: relative;
-    overflow: hidden;
-    border-radius: 1.75rem;
-    z-index: 1;
+/* Accent Top Line */
+.auth-panel-right::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #2563eb;
 }
 
-/* Glow orbs on brand panel */
-.auth__aside::before {
-    content: '';
-    position: absolute;
-    width: 340px;
-    height: 340px;
-    top: -120px;
-    right: -120px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(129, 140, 248, 0.35) 0%, transparent 65%);
-    pointer-events: none;
-}
-.auth__aside::after {
-    content: '';
-    position: absolute;
-    width: 300px;
-    height: 300px;
-    bottom: -100px;
-    left: -100px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(99, 102, 241, 0.28) 0%, transparent 65%);
-    pointer-events: none;
+.brand-header {
+  margin-bottom: 2rem;
 }
 
-.auth__brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    text-decoration: none;
-    color: white;
-    position: relative;
-    z-index: 1;
+.brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.875rem;
+  text-decoration: none;
+  color: #ffffff;
 }
-.auth__brand-mark {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
-    border: 1px solid rgba(255, 255, 255, 0.18);
+
+.brand-logo-wrap {
+  width: 44px;
+  height: 44px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem;
+}
+
+.brand-logo-wrap.has-img {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.brand-logo-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.brand-logo-icon {
+  font-size: 1.25rem;
+  color: #38bdf8;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-title {
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.brand-subtitle {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* Brand Body */
+.brand-body {
+  margin: auto 0;
+  padding: 1.5rem 0;
+}
+
+.brand-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3125rem 0.75rem;
+  background: rgba(37, 99, 235, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #93c5fd;
+  margin-bottom: 1.25rem;
+}
+
+.pill-dot {
+  width: 6px;
+  height: 6px;
+  background: #38bdf8;
+  border-radius: 50%;
+}
+
+.brand-heading {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0 0 0.875rem;
+  letter-spacing: -0.02em;
+}
+
+.heading-accent {
+  display: block;
+  color: #60a5fa;
+}
+
+.brand-description {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #94a3b8;
+  margin: 0 0 2rem;
+  max-width: 400px;
+}
+
+/* Features List */
+.features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+}
+
+.feature-icon {
+  width: 38px;
+  height: 38px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #60a5fa;
+  font-size: 0.9375rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.feature-content h4 {
+  margin: 0 0 0.1875rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.feature-content p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+/* Brand Footer */
+.brand-footer {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #1e293b;
+}
+
+.footer-security {
+  font-size: 0.75rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footer-security i {
+  color: #10b981;
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+  .auth-panel-right {
+    display: none;
+  }
+  .auth-panel-left {
+    padding: 1.5rem 1rem;
+  }
+  .auth-form-card {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-form-card {
+    padding: 1.75rem 1.25rem 1.5rem;
     border-radius: 0.75rem;
-    font-size: 1.3rem;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-}
-.auth__brand-mark.has-logo {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    backdrop-filter: none;
-}
-.auth__brand-logo {
-    width: 36px;
-    height: 36px;
-    object-fit: contain;
-}
-.auth__brand-text {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.1;
-}
-.auth__brand-name {
-    font-size: 1.125rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-}
-
-.auth__pitch {
-    position: relative;
-    z-index: 1;
-}
-.auth__pitch-title {
-    font-size: 2.25rem;
-    font-weight: 800;
-    line-height: 1.15;
-    margin: 0 0 1rem;
-    letter-spacing: -0.03em;
-}
-.auth__pitch-title span {
-    display: block;
-    background: linear-gradient(135deg, #a5b4fc 0%, #c7d2fe 60%, #e0e7ff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-.auth__pitch-lede {
-    font-size: 0.9375rem;
-    line-height: 1.65;
-    color: rgba(255, 255, 255, 0.72);
-    margin: 0 0 2rem;
-    max-width: 340px;
-}
-
-.auth__features {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1.125rem;
-}
-.auth__features li {
-    display: flex;
-    align-items: center;
-    gap: 0.875rem;
-}
-.auth__feature-icon {
-    width: 40px;
-    height: 40px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0.75rem;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    color: #a5b4fc;
-    font-size: 0.9375rem;
-}
-.auth__features li strong {
-    display: block;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
-}
-.auth__features li small {
-    display: block;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.55);
-    margin-top: 0.125rem;
-}
-
-.auth__aside-footer {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
-    position: relative;
-    z-index: 1;
-}
-
-/* Footer text under form */
-.auth__footer {
-    text-align: center;
-    font-size: 0.8125rem;
-    color: var(--gray-500, #6b7280);
-    margin-top: 1.5rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--gray-100, #f3f4f6);
-}
-
-/* --- Responsive --- */
-@media (max-width: 992px) {
-    .auth__aside {
-        display: none;
-    }
-    .auth__card {
-        max-width: 440px;
-    }
-}
-@media (max-width: 576px) {
-    .auth__card {
-        padding: 2rem 1.5rem 1.5rem;
-        border-radius: 1.25rem;
-    }
-    .auth__panel {
-        padding: 1rem;
-    }
+  }
 }
 </style>

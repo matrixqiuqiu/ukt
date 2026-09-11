@@ -31,6 +31,13 @@ class TagihanController extends Controller
             $query->where('semester', $request->semester);
         }
 
+        if ($request->filled('jurusan')) {
+            $jur = $request->jurusan;
+            $query->whereHas('mahasiswa', function ($q) use ($jur) {
+                $q->where('jurusan', $jur);
+            });
+        }
+
         // Sorting
         $allowedSorts = ['nim','nama_lengkap','semester','tahun_akademik','nominal','status'];
         $sort = $request->input('sort');
@@ -48,9 +55,16 @@ class TagihanController extends Controller
 
         $tagihans = $query->paginate(15)->withQueryString();
 
+        $semesters = Tagihan::distinct()->orderBy('semester')->pluck('semester')->filter()->values();
+        $jurusans = \App\Models\Mahasiswa::distinct()->whereNotNull('jurusan')->orderBy('jurusan')->pluck('jurusan')->values();
+
         return Inertia::render('Admin/Tagihan/Index', [
             'tagihans' => $tagihans,
-            'filters' => $request->only(['search', 'status', 'semester', 'sort', 'direction']),
+            'filters' => $request->only(['search', 'status', 'semester', 'jurusan', 'sort', 'direction']),
+            'filterOptions' => [
+                'semesters' => $semesters,
+                'jurusans' => $jurusans,
+            ],
         ]);
     }
 
@@ -62,6 +76,9 @@ class TagihanController extends Controller
         }
         if ($request->filled('status')) $q->where('status',$request->status);
         if ($request->filled('semester')) $q->where('semester',$request->semester);
+        if ($request->filled('jurusan')) {
+            $jur=$request->jurusan; $q->whereHas('mahasiswa', fn($qq)=>$qq->where('jurusan',$jur));
+        }
         $data=$q->latest()->get();
         $headers=['No','NIM','Nama','Jurusan','Angkatan','Tahun Akademik','Semester','Nominal','Status','Jatuh Tempo'];
         $rows=$data->map(fn($t,$i)=>[$i+1, ($t->mahasiswa?->nim ?? '-'), ($t->mahasiswa?->nama_lengkap ?? '-'), ($t->mahasiswa?->jurusan ?? '-'), ($t->mahasiswa?->angkatan ?? '-'), $t->tahun_akademik, $t->semester, (int)$t->nominal, $t->status, ($t->jatuh_tempo?->format('d/m/Y') ?? '-')])->toArray();
@@ -74,6 +91,9 @@ class TagihanController extends Controller
         if ($request->filled('search')) { $s=$request->search; $q->whereHas('mahasiswa', fn($qq)=>$qq->where('nim','like',"%{$s}%")->orWhere('nama_lengkap','like',"%{$s}%")); }
         if ($request->filled('status')) $q->where('status',$request->status);
         if ($request->filled('semester')) $q->where('semester',$request->semester);
+        if ($request->filled('jurusan')) {
+            $jur=$request->jurusan; $q->whereHas('mahasiswa', fn($qq)=>$qq->where('jurusan',$jur));
+        }
         $data=$q->latest()->get();
         $pdf=\Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.tagihan', ['data'=>$data])->setPaper('A4','landscape');
         return $pdf->stream('tagihan-'.date('Ymd-His').'.pdf');
