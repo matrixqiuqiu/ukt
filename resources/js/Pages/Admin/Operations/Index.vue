@@ -404,8 +404,8 @@ function buildBtnEndpointParams(key) {
     case 'create':
       return {
         partnerServiceId: svcId,
-        customerNo: '0000000000001',
-        virtualAccountNo: svcId + '0000000000001',
+        customerNo: '0025080110013',
+        virtualAccountNo: svcId + '0025080110013',
         virtualAccountName: 'Test VA',
         trxId: 'BGS' + ymdhis,
         totalAmount: { value: '20000.00', currency: 'IDR' },
@@ -416,15 +416,15 @@ function buildBtnEndpointParams(key) {
     case 'inquiry':
       return {
         partnerServiceId: svcId,
-        customerNo: '0000000000001',
-        virtualAccountNo: svcId + '0000000000001',
+        customerNo: '0025080110013',
+        virtualAccountNo: svcId + '0025080110013',
         trxId: 'BTN' + ymdhis,
       };
     case 'status':
       return {
         partnerServiceId: svcId,
-        customerNo: '0000000000001',
-        virtualAccountNo: svcId + '0000000000001',
+        customerNo: '0025080110013',
+        virtualAccountNo: svcId + '0025080110013',
         inquiryRequestId: 'INQ' + ymdhis,
         paymentRequestId: 'PAY' + ymdhis,
         additionalInfo: {},
@@ -432,8 +432,8 @@ function buildBtnEndpointParams(key) {
     case 'update':
       return {
         partnerServiceId: svcId,
-        customerNo: '0000000000001',
-        virtualAccountNo: svcId + '0000000000001',
+        customerNo: '0025080110013',
+        virtualAccountNo: svcId + '0025080110013',
         virtualAccountName: 'DEV TEST BTNVA',
         trxId: 'BTN' + ymdhis,
         totalAmount: { value: '10000.00', currency: 'IDR' },
@@ -444,8 +444,8 @@ function buildBtnEndpointParams(key) {
     case 'delete':
       return {
         partnerServiceId: svcId,
-        customerNo: '0000000000001',
-        virtualAccountNo: svcId + '0000000000001',
+        customerNo: '0025080110013',
+        virtualAccountNo: svcId + '0025080110013',
         trxId: 'BTN' + ymdhis,
       };
     case 'report': {
