@@ -17,6 +17,7 @@ return [
         'default_expired_days' => env('BTN_VA_DEFAULT_EXPIRED_DAYS', 7),
         'credentials' => [
             'oauth_id' => env('BTN_VA_CLIENT_ID', ''),
+            'client_key' => env('BTN_VA_CLIENT_KEY', ''),
             'apikey_id' => env('BTN_VA_PARTNER_ID', ''),
             'apikey_secret' => env('BTN_VA_CLIENT_SECRET', ''),
             'partner_service_id' => env('BTN_VA_PARTNER_SERVICE_ID', ''),

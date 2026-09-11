@@ -82,6 +82,7 @@ class OperationsController extends Controller
             'origin' => config('virtual_account.btn.origin', ''),
             'default_expired_days' => (int) config('virtual_account.btn.default_expired_days', 7),
             'client_id' => config('virtual_account.btn.credentials.oauth_id', ''),
+            'client_key' => config('virtual_account.btn.credentials.client_key', ''),
             'partner_id' => config('virtual_account.btn.credentials.apikey_id', ''),
             'partner_service_id' => config('virtual_account.btn.credentials.partner_service_id', ''),
             'channel_id' => config('virtual_account.btn.credentials.channel_id', ''),
