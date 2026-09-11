@@ -216,9 +216,9 @@ class PembayaranController extends Controller
         $customerNo = str_pad(substr($digits, -13), 13, '0', STR_PAD_LEFT);
         $partner = preg_replace('/\D/', '', (string) config('virtual_account.btn.credentials.partner_service_id')) ?: '';
         $virtualAccountNo = str_pad(substr($partner . $customerNo, -18), 18, '0', STR_PAD_LEFT);
-        $expiredDate = now('Asia/Jakarta')
-            ->addDays(max(1, (int) config('virtual_account.btn.default_expired_days', 7)))
-            ->format('Y-m-d\TH:i:sP');
+        $expiry = now('Asia/Jakarta')->addDays(max(1, (int) config('virtual_account.btn.default_expired_days', 7)));
+        $expiredDate = $expiry->format('Y-m-d\TH:i:sP');
+        $expiredDb = $expiry->format('Y-m-d H:i:s');
 
         $payload = [
             'customerNo' => $customerNo,
@@ -238,6 +238,18 @@ class PembayaranController extends Controller
 
         $result = $svc->operation('create', $payload);
         if (!($result['ok'] ?? false)) {
+            // VA sudah ada di bank (mis. dari testing workbench) → coba update seperti alur NTB
+            if (stripos((string) ($result['message'] ?? ''), 'exist') !== false || stripos((string) ($result['message'] ?? ''), 'sudah ada') !== false) {
+                $result = $svc->operation('update', $payload);
+            }
+        }
+        if (!($result['ok'] ?? false)) {
+            \Illuminate\Support\Facades\Log::channel('bankbtn')->warning('Create VA BTN mahasiswa gagal', [
+                'nim' => $mahasiswa->nim,
+                'virtualAccountNo' => $virtualAccountNo,
+                'message' => $result['message'] ?? 'Unknown',
+                'response' => $result['response_payload'] ?? null,
+            ]);
             return back()->withErrors(['payment' => 'Gagal membuat VA BTN: ' . ($result['message'] ?? 'Unknown')]);
         }
 
@@ -252,7 +264,7 @@ class PembayaranController extends Controller
                 'jumlah_bayar' => $request->input('jumlah_bayar'),
                 'nama_pengirim' => $mahasiswa->nama_lengkap,
                 'va_number' => $finalVaNumber,
-                'va_expired_at' => $expiredDate,
+                'va_expired_at' => $expiredDb,
                 'status' => 'pending',
             ]);
 
