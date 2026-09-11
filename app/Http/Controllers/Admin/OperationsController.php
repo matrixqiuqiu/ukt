@@ -266,8 +266,9 @@ class OperationsController extends Controller
         $params = $sanitize($params);
 
         $start = microtime(true);
-        // operationRaw: payload dikirim apa adanya (hanya partnerServiceId dipaksa dari ENV)
-        $result = (new \App\Services\Integrasi\BtnVaService())->operationRaw($endpoint, $params);
+        // operation(): normalisasi sama seperti produksi (partnerServiceId dari ENV,
+        // field additionalInfo yang kosong dibuang agar tidak ditolak bank)
+        $result = (new \App\Services\Integrasi\BtnVaService())->operation($endpoint, $params);
         $duration = round((microtime(true) - $start) * 1000);
         $ok = (bool) ($result['ok'] ?? false);
         $payload = is_array($result['response_payload'] ?? null) ? $result['response_payload'] : null;

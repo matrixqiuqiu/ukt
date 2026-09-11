@@ -506,11 +506,10 @@ class BtnVaService
         }
 
         if (isset($payload['additionalInfo']) && is_array($payload['additionalInfo'])) {
+            // BTN menolak field kosong/null (4002701 Invalid Field Format) → buang semua yang kosong
             foreach ($payload['additionalInfo'] as $key => $value) {
-                if (is_string($value) && trim($value) === '') {
-                    if (!in_array($key, ['payment', 'currentAccountNo', 'paymentCode'], true)) {
-                        unset($payload['additionalInfo'][$key]);
-                    }
+                if ($value === null || (is_string($value) && trim($value) === '')) {
+                    unset($payload['additionalInfo'][$key]);
                 }
             }
             if ($payload['additionalInfo'] === []) {
