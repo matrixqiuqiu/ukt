@@ -2,7 +2,6 @@
 
 namespace App\Services\Integrasi;
 
-use App\Services\Admin\CommonAdminService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -207,21 +206,8 @@ class BtnVaInvoiceService
             $documentNoRegister = $identifierValue !== '' ? $identifierValue : $kodeMhs;
         }
         $documentStudentName = $this->firstFilledString([$row->nama ?? null, $row->va_name ?? null, 'Calon Mahasiswa']);
-        // CommonAdminService hanya ada di aplikasi PMB — fallback lokal bila tidak tersedia
-        if (class_exists(CommonAdminService::class)) {
-            $documentTitle = app(CommonAdminService::class)->buildDocumentIdentityTitle(
-                $documentNoRegister,
-                $documentStudentName
-            );
-            $fileName = app(CommonAdminService::class)->buildDocumentIdentityFileName(
-                $documentNoRegister,
-                $documentStudentName,
-                $kodeMhs !== '' ? $kodeMhs : 'dokumen'
-            );
-        } else {
-            $documentTitle = trim($documentNoRegister . ' - ' . $documentStudentName, ' -');
-            $fileName = 'dokumen-' . ($kodeMhs !== '' ? $kodeMhs : 'btnva') . '.pdf';
-        }
+        $documentTitle = trim($documentNoRegister . ' - ' . $documentStudentName, ' -');
+        $fileName = 'dokumen-' . ($kodeMhs !== '' ? $kodeMhs : 'btnva') . '.pdf';
 
         $paidAtRaw = $this->firstFilledString([
             $row->paid_at ?? null,

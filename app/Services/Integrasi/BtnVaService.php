@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-use App\Support\DaftarUlangPaymentHistory;
 use Throwable;
 
 class BtnVaService
@@ -736,13 +735,6 @@ class BtnVaService
                 }
             }
 
-            if (class_exists(DaftarUlangPaymentHistory::class) && DaftarUlangPaymentHistory::isReady() && DaftarUlangPaymentHistory::isSupportedPaymentItemKey($paymentItemKey)) {
-                DaftarUlangPaymentHistory::updateVerification($kodeMhs, $paymentItemKey, 1, [
-                    'user_login_id' => null,
-                    'catatan_verifikasi' => null,
-                    'now' => $nowText,
-                ]);
-            }
         }
     }
 }
