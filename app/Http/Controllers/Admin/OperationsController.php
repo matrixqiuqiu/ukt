@@ -220,6 +220,21 @@ class OperationsController extends Controller
         $ok = (bool) ($result['ok'] ?? false);
         $payload = is_array($result['response_payload'] ?? null) ? $result['response_payload'] : [];
 
+        try {
+            VaApiLog::create([
+                'endpoint' => 'btn-token',
+                'success' => $ok,
+                'status_code' => $ok ? 200 : ($result['http_status'] ?? 0),
+                'rcode' => $result['response_code'] ?? null,
+                'message' => $result['message'] ?? 'OK',
+                'request_data' => ['grantType' => 'client_credentials'],
+                'response_data' => $payload,
+                'duration_ms' => $duration,
+            ]);
+        } catch (\Exception $logEx) {
+            \Illuminate\Support\Facades\Log::channel('bankbtn')->warning('Gagal simpan VaApiLog btn-token: ' . $logEx->getMessage());
+        }
+
         return response()->json([
             'success' => $ok,
             'status' => $ok ? 200 : ($result['http_status'] ?? 0),
@@ -532,6 +547,21 @@ class OperationsController extends Controller
 
             $duration = round((microtime(true) - $startTime) * 1000);
             $body = $response->json();
+
+            try {
+                VaApiLog::create([
+                    'endpoint' => 'token',
+                    'success' => $response->successful(),
+                    'status_code' => $response->status(),
+                    'rcode' => $body['rCode'] ?? null,
+                    'message' => $body['message'] ?? ($response->successful() ? 'OK' : 'Failed'),
+                    'request_data' => $requestBody,
+                    'response_data' => $body,
+                    'duration_ms' => $duration,
+                ]);
+            } catch (\Exception $logEx) {
+                \Illuminate\Support\Facades\Log::channel('bankntb')->warning('Gagal simpan VaApiLog token: ' . $logEx->getMessage());
+            }
 
             return response()->json([
                 'success' => $response->successful(),
