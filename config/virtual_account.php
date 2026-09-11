@@ -34,6 +34,7 @@ return [
         'timeout_seconds' => (int) env('BTN_VA_TIMEOUT_SECONDS', 30),
         'origin' => trim((string) env('BTN_VA_ORIGIN', '')),
         'default_expired_days' => (int) env('BTN_VA_DEFAULT_EXPIRED_DAYS', 7),
+        'default_expired_minutes' => (int) env('BTN_VA_DEFAULT_EXPIRED_MINUTES', 0),
         'credentials' => [
             'oauth_id' => trim((string) env('BTN_VA_CLIENT_KEY', '')),
             'apikey_id' => trim((string) env('BTN_VA_PARTNER_ID', env('BTN_VA_CLIENT_ID', ''))),

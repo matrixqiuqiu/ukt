@@ -216,7 +216,9 @@ class PembayaranController extends Controller
         $customerNo = str_pad(substr($digits, -13), 13, '0', STR_PAD_LEFT);
         $partner = preg_replace('/\D/', '', (string) config('virtual_account.btn.credentials.partner_service_id')) ?: '';
         $virtualAccountNo = str_pad(substr($partner . $customerNo, -18), 18, '0', STR_PAD_LEFT);
-        $expiry = now('Asia/Jakarta')->addDays(max(1, (int) config('virtual_account.btn.default_expired_days', 7)));
+        $expiry = now('Asia/Jakarta')
+            ->addDays(max(0, (int) config('virtual_account.btn.default_expired_days', 7)))
+            ->addMinutes(max(0, (int) config('virtual_account.btn.default_expired_minutes', 0)));
         $expiredDate = $expiry->format('Y-m-d\TH:i:sP');
         $expiredDb = $expiry->format('Y-m-d H:i:s');
 
