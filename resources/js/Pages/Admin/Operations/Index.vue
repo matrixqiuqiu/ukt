@@ -1562,9 +1562,13 @@ function buildEndpointParams(key) {
   font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
   color: #1e293b;
   max-height: 160px;
+  max-width: 420px;
   overflow: auto;
   margin: 0;
   line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Metrics Grid (Tab 2) */
