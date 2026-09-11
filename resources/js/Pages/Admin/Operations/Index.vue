@@ -385,43 +385,36 @@ async function btnTestSingleEndpoint(ep) {
 
 function buildBtnEndpointParams(key) {
   const svcId = props.btnConfig?.partner_service_id || '96719';
-  const sampleVa = svcId + '25080110';
+  const sampleVa = svcId + '25080110013';
   switch (key) {
-    case 'create-va':
+    case 'create':
+    case 'update':
       return {
-        partnerServiceId: svcId,
-        customerNo: '25080110',
+        customerNo: '25080110013',
         virtualAccountNo: sampleVa,
-        virtualAccountName: 'DEV TEST BTNVA',
-        virtualAccountEmail: 'dev-btnva@example.com',
-        virtualAccountPhone: '081234567890',
-        trxId: String(Date.now()),
-        totalAmount: { value: '150000.00', currency: 'IDR' },
-        additionalInfo: { channel: 'VIRTUAL_ACCOUNT_BTN' },
+        virtualAccountName: key === 'create' ? 'DEV TEST BTNVA' : 'DEV TEST BTNVA UPDATE',
+        trxId: 'BTN' + String(Date.now()).slice(-12),
+        totalAmount: { value: key === 'create' ? '150000.00' : '170000.00', currency: 'IDR' },
+        virtualAccountTrxType: 'C',
+        additionalInfo: { description: 'Pembayaran UKT via BTN VA' },
       };
-    case 'update-va':
+    case 'inquiry':
+    case 'delete':
       return {
-        partnerServiceId: svcId,
-        customerNo: '25080110',
+        customerNo: '25080110013',
         virtualAccountNo: sampleVa,
-        virtualAccountName: 'DEV TEST BTNVA UPDATE',
-        totalAmount: { value: '170000.00', currency: 'IDR' },
-        additionalInfo: { channel: 'VIRTUAL_ACCOUNT_BTN' },
+        trxId: 'BTN' + String(Date.now()).slice(-12),
       };
-    case 'delete-va':
+    case 'status':
       return {
-        partnerServiceId: svcId,
-        customerNo: '25080110',
+        customerNo: '25080110013',
         virtualAccountNo: sampleVa,
-        trxId: String(Date.now()),
+        inquiryRequestId: 'INQ' + String(Date.now()).slice(-12),
       };
-    case 'inquiry-status':
-      return {
-        partnerServiceId: svcId,
-        customerNo: '25080110',
-        virtualAccountNo: sampleVa,
-        trxId: String(Date.now()),
-      };
+    case 'report': {
+      const d = new Date().toISOString().split('T')[0];
+      return { startDate: d, endDate: d };
+    }
     case 'token':
       return { grantType: 'client_credentials' };
     default:

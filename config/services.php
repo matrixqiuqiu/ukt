@@ -44,22 +44,6 @@ return [
         'nama_mitra' => env('NAMA_MITRA', ''),
     ],
 
-    'vabtn' => [
-        'production' => env('BTN_VA_PRODUCTION', false),
-        'base_url' => env('BTN_VA_BASE_URL', ''),
-        'timeout_seconds' => env('BTN_VA_TIMEOUT_SECONDS', 30),
-        'origin' => env('BTN_VA_ORIGIN', ''),
-        'default_expired_days' => env('BTN_VA_DEFAULT_EXPIRED_DAYS', 7),
-        'client_id' => env('BTN_VA_CLIENT_ID', ''),
-        'client_key' => env('BTN_VA_CLIENT_KEY', ''),
-        'client_secret' => env('BTN_VA_CLIENT_SECRET', ''),
-        'private_key_base64' => env('BTN_VA_PRIVATE_RSA_KEY_BASE64', ''),
-        'partner_service_id' => env('BTN_VA_PARTNER_SERVICE_ID', ''),
-        'partner_id' => env('BTN_VA_PARTNER_ID', ''),
-        'channel_id' => env('BTN_VA_CHANNEL_ID', ''),
-        'current_account_no' => env('BTN_VA_CURRENT_ACCOUNT_NO', ''),
-    ],
-
     'siakad' => [
         'base_url' => env('BASE_API_SIAKAD'),
         'get_mahasiswa' => env('BASE_API_SIAKAD_GET_MAHASISWA'),

@@ -74,53 +74,66 @@ class OperationsController extends Controller
             ],
         ];
 
+        $btnSvc = new \App\Services\Integrasi\BtnVaService();
         $btnConfig = [
-            'production' => (bool) config('services.vabtn.production', env('BTN_VA_PRODUCTION', false)),
-            'base_url' => config('services.vabtn.base_url', env('BTN_VA_BASE_URL', '')),
-            'timeout_seconds' => (int) config('services.vabtn.timeout_seconds', env('BTN_VA_TIMEOUT_SECONDS', 30)),
-            'origin' => config('services.vabtn.origin', env('BTN_VA_ORIGIN', '')),
-            'default_expired_days' => (int) config('services.vabtn.default_expired_days', env('BTN_VA_DEFAULT_EXPIRED_DAYS', 7)),
-            'client_id' => config('services.vabtn.client_id', env('BTN_VA_CLIENT_ID', '')),
-            'client_key' => config('services.vabtn.client_key', env('BTN_VA_CLIENT_KEY', '')),
-            'partner_service_id' => config('services.vabtn.partner_service_id', env('BTN_VA_PARTNER_SERVICE_ID', '')),
-            'partner_id' => config('services.vabtn.partner_id', env('BTN_VA_PARTNER_ID', '')),
-            'channel_id' => config('services.vabtn.channel_id', env('BTN_VA_CHANNEL_ID', '')),
+            'production' => (bool) config('virtual_account.btn.production', false),
+            'base_url' => config('virtual_account.btn.base_url', ''),
+            'timeout_seconds' => (int) config('virtual_account.btn.timeout_seconds', 30),
+            'origin' => config('virtual_account.btn.origin', ''),
+            'default_expired_days' => (int) config('virtual_account.btn.default_expired_days', 7),
+            'client_id' => config('virtual_account.btn.credentials.oauth_id', ''),
+            'partner_id' => config('virtual_account.btn.credentials.apikey_id', ''),
+            'partner_service_id' => config('virtual_account.btn.credentials.partner_service_id', ''),
+            'channel_id' => config('virtual_account.btn.credentials.channel_id', ''),
+            'is_configured' => $btnSvc->isConfigured(),
             // Secret tidak pernah dikirim ke frontend — hanya flag keberadaan
-            'has_client_secret' => !empty(config('services.vabtn.client_secret', env('BTN_VA_CLIENT_SECRET', ''))),
-            'has_private_key' => !empty(config('services.vabtn.private_key_base64', env('BTN_VA_PRIVATE_RSA_KEY_BASE64', ''))),
-            'has_current_account' => !empty(config('services.vabtn.current_account_no', env('BTN_VA_CURRENT_ACCOUNT_NO', ''))),
+            'has_client_secret' => config('virtual_account.btn.credentials.apikey_secret', '') !== '',
+            'has_private_key' => config('virtual_account.btn.credentials.private_rsa_key_base64', '') !== '',
+            'has_current_account' => config('virtual_account.btn.credentials.current_account_no', '') !== '',
         ];
 
         $btnEndpointMeta = [
             [
                 'key' => 'token',
                 'name' => 'token',
-                'path' => \App\Services\BtnVaService::TOKEN_PATH,
+                'path' => config('virtual_account.btn.endpoints.token', ''),
                 'description' => 'Mengambil access token (client_credentials + signature RSA-SHA256) untuk header Authorization endpoint BTN lainnya.',
             ],
             [
-                'key' => 'create-va',
-                'name' => 'create-va',
-                'path' => \App\Services\BtnVaService::PATH_MAP['create-va'],
-                'description' => 'Membuat virtual account BTN baru untuk tagihan UKT (partnerServiceId + customerNo).',
+                'key' => 'create',
+                'name' => 'create',
+                'path' => config('virtual_account.btn.endpoints.create', ''),
+                'description' => 'Membuat virtual account BTN baru (customerNo, virtualAccountNo, totalAmount, trxId).',
             ],
             [
-                'key' => 'update-va',
-                'name' => 'update-va',
-                'path' => \App\Services\BtnVaService::PATH_MAP['update-va'],
+                'key' => 'update',
+                'name' => 'update',
+                'path' => config('virtual_account.btn.endpoints.update', ''),
                 'description' => 'Memperbarui data virtual account BTN yang sudah ada (nominal, nama, masa berlaku).',
             ],
             [
-                'key' => 'delete-va',
-                'name' => 'delete-va',
-                'path' => \App\Services\BtnVaService::PATH_MAP['delete-va'],
+                'key' => 'inquiry',
+                'name' => 'inquiry',
+                'path' => config('virtual_account.btn.endpoints.inquiry', ''),
+                'description' => 'Inquiry detail virtual account BTN (customerNo, virtualAccountNo, trxId).',
+            ],
+            [
+                'key' => 'status',
+                'name' => 'status',
+                'path' => config('virtual_account.btn.endpoints.status', ''),
+                'description' => 'Mengecek status pembayaran VA BTN (customerNo, virtualAccountNo, inquiryRequestId).',
+            ],
+            [
+                'key' => 'delete',
+                'name' => 'delete',
+                'path' => config('virtual_account.btn.endpoints.delete', ''),
                 'description' => 'Menghapus / menonaktifkan virtual account BTN.',
             ],
             [
-                'key' => 'inquiry-status',
-                'name' => 'inquiry-status',
-                'path' => \App\Services\BtnVaService::PATH_MAP['inquiry-status'],
-                'description' => 'Mengecek status transaksi VA BTN berdasarkan nomor VA.',
+                'key' => 'report',
+                'name' => 'report',
+                'path' => config('virtual_account.btn.endpoints.report', ''),
+                'description' => 'Laporan transaksi VA BTN per rentang tanggal (startDate, endDate).',
             ],
         ];
 
@@ -201,15 +214,18 @@ class OperationsController extends Controller
     public function testBtnToken()
     {
         $start = microtime(true);
-        $result = (new \App\Services\BtnVaService())->requestToken();
+        $svc = new \App\Services\Integrasi\BtnVaService();
+        $result = $svc->getToken(true);
         $duration = round((microtime(true) - $start) * 1000);
+        $ok = (bool) ($result['ok'] ?? false);
+        $payload = is_array($result['response_payload'] ?? null) ? $result['response_payload'] : [];
 
         return response()->json([
-            'success' => $result['success'],
-            'status' => $result['success'] ? 200 : 0,
-            'rcode' => $result['data']['responseCode'] ?? null,
-            'message' => $result['message'],
-            'data' => $result['data'],
+            'success' => $ok,
+            'status' => $ok ? 200 : ($result['http_status'] ?? 0),
+            'rcode' => $result['response_code'] ?? null,
+            'message' => $result['message'] ?? ($ok ? 'OK' : 'Gagal mengambil token'),
+            'data' => $payload,
             'request' => ['grantType' => 'client_credentials'],
             'duration_ms' => $duration,
         ]);
@@ -234,24 +250,37 @@ class OperationsController extends Controller
         };
         $params = $sanitize($params);
 
-        $result = (new \App\Services\BtnVaService())->call($endpoint, $params);
+        $start = microtime(true);
+        // operationRaw: payload dikirim apa adanya (hanya partnerServiceId dipaksa dari ENV)
+        $result = (new \App\Services\Integrasi\BtnVaService())->operationRaw($endpoint, $params);
+        $duration = round((microtime(true) - $start) * 1000);
+        $ok = (bool) ($result['ok'] ?? false);
+        $payload = is_array($result['response_payload'] ?? null) ? $result['response_payload'] : null;
 
         try {
             VaApiLog::create([
                 'endpoint' => 'btn-' . $endpoint,
-                'success' => $result['success'],
-                'status_code' => $result['status'] ?? 0,
-                'rcode' => $result['data']['responseCode'] ?? null,
+                'success' => $ok,
+                'status_code' => $result['http_status'] ?? 0,
+                'rcode' => $result['response_code'] ?? null,
                 'message' => $result['message'] ?? 'OK',
-                'request_data' => $result['request'] ?? $params,
-                'response_data' => $result['data'],
-                'duration_ms' => $result['duration_ms'] ?? 0,
+                'request_data' => $params,
+                'response_data' => $payload,
+                'duration_ms' => $duration,
             ]);
         } catch (\Exception $logEx) {
             \Illuminate\Support\Facades\Log::channel('bankbtn')->warning('Gagal simpan VaApiLog BTN: ' . $logEx->getMessage());
         }
 
-        return response()->json($result);
+        return response()->json([
+            'success' => $ok,
+            'status' => $result['http_status'] ?? 0,
+            'rcode' => $result['response_code'] ?? null,
+            'message' => $result['message'] ?? 'OK',
+            'data' => $payload,
+            'request' => $params,
+            'duration_ms' => $duration,
+        ]);
     }
 
     public function testEndpoint(Request $request)
