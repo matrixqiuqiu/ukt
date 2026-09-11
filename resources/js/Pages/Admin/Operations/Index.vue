@@ -62,7 +62,6 @@ watch(activeProvider, () => {
 
 // Transaction history state
 const vaTransactions = ref(props.vaTransactions);
-const historySubTab = ref('ukt');
 const historySearch = ref('');
 const historyFilterProdi = ref('');
 const loadingHistory = ref(false);
@@ -118,9 +117,7 @@ async function fetchTransaksiHistory() {
 }
 
 const filteredTransactions = computed(() => {
-  const list = historySubTab.value === 'ukt'
-    ? (vaTransactions.value?.pendaftaran || [])
-    : (vaTransactions.value?.daftar_ulang || []);
+  const list = vaTransactions.value?.all || [];
 
   return list.filter(t => {
     const q = historySearch.value.toLowerCase().trim();
@@ -1063,28 +1060,10 @@ function buildEndpointParams(key) {
       <div class="op-solid-card">
         <div class="card-head">
           <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
-              <h3 class="card-title">
-                <i class="fas fa-receipt" style="color:#2563eb;"></i> Transaksi Tagihan & VA {{ isBtn ? 'BTN' : 'NTB' }}
-              </h3>
-            <!-- Sub tabs -->
-            <div class="op-sub-tabs">
-              <button
-                type="button"
-                class="sub-tab-btn"
-                :class="{ active: historySubTab === 'ukt' }"
-                @click="historySubTab = 'ukt'"
-              >
-                UKT Mahasiswa <span class="sub-counter">{{ vaTransactions?.pendaftaran?.length || 0 }}</span>
-              </button>
-              <button
-                type="button"
-                class="sub-tab-btn"
-                :class="{ active: historySubTab === 'daftar_ulang' }"
-                @click="historySubTab = 'daftar_ulang'"
-              >
-                Daftar Ulang <span class="sub-counter">{{ vaTransactions?.daftar_ulang?.length || 0 }}</span>
-              </button>
-            </div>
+            <h3 class="card-title">
+              <i class="fas fa-receipt" style="color:#2563eb;"></i> Transaksi Tagihan & VA {{ isBtn ? 'BTN' : 'NTB' }}
+            </h3>
+            <span class="sub-counter">{{ (vaTransactions?.all?.length || 0) }} transaksi</span>
           </div>
 
           <!-- Toolbar filter -->
@@ -1172,7 +1151,7 @@ function buildEndpointParams(key) {
           </div>
           <div v-else class="empty-state-box">
             <i class="fas fa-receipt"></i>
-            <p>Tidak ada transaksi {{ historySubTab === 'ukt' ? 'UKT' : 'daftar ulang' }} yang cocok.</p>
+            <p>Tidak ada transaksi UKT yang cocok.</p>
           </div>
         </div>
       </div>
