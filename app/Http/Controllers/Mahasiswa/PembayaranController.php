@@ -261,6 +261,21 @@ class PembayaranController extends Controller
         $vaData = $result['response_payload']['virtualAccountData'] ?? [];
         $finalVaNumber = trim((string) ($vaData['virtualAccountNo'] ?? $virtualAccountNo));
 
+        try {
+            \App\Models\VaApiLog::create([
+                'endpoint' => 'btn-create',
+                'success' => true,
+                'status_code' => $result['http_status'] ?? 200,
+                'rcode' => $result['response_code'] ?? null,
+                'message' => $result['message'] ?? 'OK',
+                'request_data' => $payload,
+                'response_data' => $result['response_payload'] ?? null,
+                'duration_ms' => 0,
+            ]);
+        } catch (\Exception $logEx) {
+            \Illuminate\Support\Facades\Log::channel('bankbtn')->warning('Gagal simpan VaApiLog btn-create: ' . $logEx->getMessage());
+        }
+
         DB::beginTransaction();
         try {
             $pembayaran = Pembayaran::create([
@@ -554,8 +569,24 @@ class PembayaranController extends Controller
 
         $vaData = $result['response_payload']['virtualAccountData'] ?? [];
         $flag = trim((string) ($vaData['paymentFlagStatus'] ?? ''));
+        $paid = ($result['ok'] ?? false) && $flag === '00';
 
-        if (($result['ok'] ?? false) && $flag === '00') {
+        try {
+            \App\Models\VaApiLog::create([
+                'endpoint' => 'btn-status',
+                'success' => $paid,
+                'status_code' => $result['http_status'] ?? 0,
+                'rcode' => $result['response_code'] ?? null,
+                'message' => $result['message'] ?? 'OK',
+                'request_data' => ['virtualAccountNo' => (string) $pembayaran->va_number],
+                'response_data' => $result['response_payload'] ?? null,
+                'duration_ms' => 0,
+            ]);
+        } catch (\Exception $logEx) {
+            \Illuminate\Support\Facades\Log::channel('bankbtn')->warning('Gagal simpan VaApiLog btn-status: ' . $logEx->getMessage());
+        }
+
+        if ($paid) {
             DB::beginTransaction();
             try {
                 $pembayaran->update(['status' => 'dikonfirmasi', 'verified_at' => now()]);
