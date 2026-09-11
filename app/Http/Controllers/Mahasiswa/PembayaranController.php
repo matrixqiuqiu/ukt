@@ -7,9 +7,11 @@ use App\Models\MetodePembayaran;
 use App\Models\Pembayaran;
 use App\Models\RiwayatTransaksi;
 use App\Models\Tagihan;
+use App\Services\Integrasi\BtnVaService;
 use App\Services\VaNtbService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class PembayaranController extends Controller
@@ -43,6 +45,11 @@ class PembayaranController extends Controller
                 ->findOrFail($validated['tagihan_id']);
 
             $metode = MetodePembayaran::findOrFail($validated['metode_pembayaran_id']);
+
+            // Metode BTN → buat VA via BTN SNAP (awalan partnerServiceId, mis. 96719)
+            if (stripos($metode->nama_metode, 'btn') !== false) {
+                return $this->storeViaBtn($request, $user, $mahasiswa, $tagihan, $metode, (float) $validated['jumlah_bayar']);
+            }
 
             $vaService = new VaNtbService();
             $vaSuffix = $vaService->generateVaNumber(
@@ -195,6 +202,77 @@ class PembayaranController extends Controller
         }
     }
 
+    /**
+     * Buat VA via Bank BTN (SNAP). Nomor VA diawali partnerServiceId (mis. 96719).
+     */
+    private function storeViaBtn(Request $request, $user, $mahasiswa, $tagihan, $metode, float $amount)
+    {
+        $svc = new BtnVaService();
+        if (!$svc->isConfigured()) {
+            return back()->withErrors(['payment' => 'Kanal BTN belum dikonfigurasi. Silakan hubungi admin.']);
+        }
+
+        $digits = preg_replace('/\D/', '', $mahasiswa->nim) ?: '';
+        $customerNo = str_pad(substr($digits, -13), 13, '0', STR_PAD_LEFT);
+        $partner = preg_replace('/\D/', '', (string) config('virtual_account.btn.credentials.partner_service_id')) ?: '';
+        $virtualAccountNo = str_pad(substr($partner . $customerNo, -18), 18, '0', STR_PAD_LEFT);
+        $expiredDate = now('Asia/Jakarta')
+            ->addDays(max(1, (int) config('virtual_account.btn.default_expired_days', 7)))
+            ->format('Y-m-d\TH:i:sP');
+
+        $payload = [
+            'customerNo' => $customerNo,
+            'virtualAccountNo' => $virtualAccountNo,
+            'virtualAccountName' => mb_substr(trim($mahasiswa->nama_lengkap), 0, 30),
+            'trxId' => 'BTN' . now('Asia/Jakarta')->format('ymdHis') . strtoupper(Str::random(4)),
+            'totalAmount' => ['value' => number_format($amount, 2, '.', ''), 'currency' => 'IDR'],
+            'virtualAccountTrxType' => 'C',
+            'expiredDate' => $expiredDate,
+            'additionalInfo' => [
+                'description' => mb_substr('Pembayaran UKT ' . ($tagihan->keterangan ?? ''), 0, 60),
+                'payment' => '',
+                'currentAccountNo' => (string) config('virtual_account.btn.credentials.current_account_no', ''),
+                'paymentCode' => '',
+            ],
+        ];
+
+        $result = $svc->operation('create', $payload);
+        if (!($result['ok'] ?? false)) {
+            return back()->withErrors(['payment' => 'Gagal membuat VA BTN: ' . ($result['message'] ?? 'Unknown')]);
+        }
+
+        $vaData = $result['response_payload']['virtualAccountData'] ?? [];
+        $finalVaNumber = trim((string) ($vaData['virtualAccountNo'] ?? $virtualAccountNo));
+
+        DB::beginTransaction();
+        try {
+            $pembayaran = Pembayaran::create([
+                'tagihan_id' => $tagihan->id,
+                'metode_pembayaran_id' => $metode->id,
+                'jumlah_bayar' => $request->input('jumlah_bayar'),
+                'nama_pengirim' => $mahasiswa->nama_lengkap,
+                'va_number' => $finalVaNumber,
+                'va_expired_at' => $expiredDate,
+                'status' => 'pending',
+            ]);
+
+            RiwayatTransaksi::create([
+                'pembayaran_id' => $pembayaran->id,
+                'user_id' => $user->id,
+                'aksi' => 'va_dibuat',
+                'keterangan' => 'Virtual Account BTN ' . $finalVaNumber . ' dibuat via ' . $metode->nama_metode,
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('mahasiswa.pembayaran.show', $pembayaran->id);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return back()->withErrors(['payment' => 'Gagal membuat VA BTN: ' . $e->getMessage()]);
+        }
+    }
+
     public function show(Request $request, $id)
     {
         $user = $request->user();
@@ -305,6 +383,12 @@ class PembayaranController extends Controller
                     'status' => 'expired',
                 ],
             ]);
+        }
+
+        // Jalur BTN: inquiry status via BTN SNAP (bukan NTB)
+        $pembayaran->loadMissing('metodePembayaran');
+        if ($pembayaran->metodePembayaran && stripos($pembayaran->metodePembayaran->nama_metode, 'btn') !== false) {
+            return $this->checkBtnStatus($user, $mahasiswa, $pembayaran);
         }
 
         // LANGKAH 2: Implementasi Saklar "PRODUCTION" dari .env
@@ -434,6 +518,56 @@ class PembayaranController extends Controller
                 'data' => $result['data'] ?? null,
             ]);
         }
+    }
+
+    /**
+     * Cek status pembayaran VA BTN via operasi inquiry-status.
+     * Lunas ditandai paymentFlagStatus 00 pada virtualAccountData.
+     */
+    private function checkBtnStatus($user, $mahasiswa, $pembayaran)
+    {
+        $svc = new BtnVaService();
+        $digits = preg_replace('/\D/', '', $mahasiswa->nim) ?: '';
+
+        $result = $svc->operation('status', [
+            'customerNo' => str_pad(substr($digits, -13), 13, '0', STR_PAD_LEFT),
+            'virtualAccountNo' => (string) $pembayaran->va_number,
+            'inquiryRequestId' => 'INQ' . now('Asia/Jakarta')->format('ymdHis') . strtoupper(Str::random(4)),
+        ]);
+
+        $vaData = $result['response_payload']['virtualAccountData'] ?? [];
+        $flag = trim((string) ($vaData['paymentFlagStatus'] ?? ''));
+
+        if (($result['ok'] ?? false) && $flag === '00') {
+            DB::beginTransaction();
+            try {
+                $pembayaran->update(['status' => 'dikonfirmasi', 'verified_at' => now()]);
+                $pembayaran->tagihan->update(['status' => 'sudah_dibayar']);
+                RiwayatTransaksi::create([
+                    'pembayaran_id' => $pembayaran->id,
+                    'user_id' => $user->id,
+                    'aksi' => 'pembayaran_dikonfirmasi',
+                    'keterangan' => 'Pembayaran VA BTN terkonfirmasi otomatis oleh sistem bank',
+                ]);
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+            }
+
+            return response()->json([
+                'success' => true,
+                'status' => 'paid',
+                'message' => 'Pembayaran berhasil dikonfirmasi',
+                'data' => ['va' => $pembayaran->va_number, 'status' => 'paid', 'amount' => $pembayaran->jumlah_bayar],
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'status' => 'pending',
+            'message' => $result['message'] ?? 'Belum ada pembayaran terdeteksi',
+            'data' => ['va' => $pembayaran->va_number, 'status' => 'pending'],
+        ]);
     }
 
     public function riwayat(Request $request)
