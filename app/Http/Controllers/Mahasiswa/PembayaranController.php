@@ -211,6 +211,9 @@ class PembayaranController extends Controller
         if (!$svc->isConfigured()) {
             return back()->withErrors(['payment' => 'Kanal BTN belum dikonfigurasi. Silakan hubungi admin.']);
         }
+        if (trim((string) config('virtual_account.btn.credentials.current_account_no', '')) === '') {
+            return back()->withErrors(['payment' => 'Rekening giro penampung BTN belum diisi (BTN_VA_CURRENT_ACCOUNT_NO). Silakan hubungi admin.']);
+        }
 
         $digits = preg_replace('/\D/', '', $mahasiswa->nim) ?: '';
         $customerNo = str_pad(substr($digits, -13), 13, '0', STR_PAD_LEFT);
