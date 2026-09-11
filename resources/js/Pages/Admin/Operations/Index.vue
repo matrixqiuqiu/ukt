@@ -798,10 +798,6 @@ function buildEndpointParams(key) {
               <span class="url-text font-mono">{{ btnConfig?.base_url || 'Belum diatur' }}</span>
             </div>
             <div class="env-url-box" style="margin-top:0.5rem;">
-              <span class="url-lbl">CLIENT ID:</span>
-              <span class="url-text font-mono">{{ btnConfig?.client_id || 'Belum diatur' }}</span>
-            </div>
-            <div class="env-url-box" style="margin-top:0.5rem;">
               <span class="url-lbl">CLIENT KEY:</span>
               <span class="url-text font-mono">{{ btnConfig?.client_key || 'Belum diatur' }}</span>
             </div>

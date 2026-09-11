@@ -1,38 +1,56 @@
 <?php
 
-/*
-|--------------------------------------------------------------------------
-| Virtual Account Providers (BTN SNAP VA)
-|--------------------------------------------------------------------------
-| Dibaca oleh App\Services\Integrasi\BtnVaService.
-| Path endpoint bisa dioverride via ENV bila portal BTN memberi path lain.
-*/
-
 return [
-    'btn' => [
-        'production' => env('BTN_VA_PRODUCTION', false),
-        'base_url' => env('BTN_VA_BASE_URL', ''),
-        'origin' => env('BTN_VA_ORIGIN', ''),
-        'timeout_seconds' => env('BTN_VA_TIMEOUT_SECONDS', 30),
-        'default_expired_days' => env('BTN_VA_DEFAULT_EXPIRED_DAYS', 7),
+    'ntb' => [
+        'provider' => 'ntbva',
+        'production' => (bool) env('PRODUCTION', false),
+        'timeout_seconds' => (int) env('NTB_VA_TIMEOUT_SECONDS', 30),
+        'va_type' => trim((string) env('NTB_VA_TYPE', '41')),
+        'default_billing_type' => trim((string) env('NTB_VA_DEFAULT_BILLING_TYPE', 'c')),
+        'default_expired_minutes' => (int) env('NTB_VA_DEFAULT_EXPIRED_MINUTES', 0),
+        'default_expired_days' => (int) env('NTB_VA_DEFAULT_EXPIRED_DAYS', 7),
         'credentials' => [
-            'oauth_id' => env('BTN_VA_CLIENT_ID', ''),
-            'client_key' => env('BTN_VA_CLIENT_KEY', ''),
-            'apikey_id' => env('BTN_VA_PARTNER_ID', ''),
-            'apikey_secret' => env('BTN_VA_CLIENT_SECRET', ''),
-            'partner_service_id' => env('BTN_VA_PARTNER_SERVICE_ID', ''),
-            'channel_id' => env('BTN_VA_CHANNEL_ID', ''),
-            'private_rsa_key_base64' => env('BTN_VA_PRIVATE_RSA_KEY_BASE64', ''),
-            'current_account_no' => env('BTN_VA_CURRENT_ACCOUNT_NO', ''),
+            'user_id' => trim((string) env('USER_ID', '')),
+            'user_secret' => trim((string) env('USER_SECRET', '')),
+            'id_mitra' => trim((string) env('ID_MITRA', '')),
+            'id_produk' => trim((string) env('ID_PRODUK', '')),
+            'secret_key_signature' => trim((string) env('SECRET_KEY_SIGNATURE', '')),
         ],
         'endpoints' => [
-            'token' => env('BTN_VA_PATH_TOKEN', '/snap/v1.0/access-token/b2b'),
-            'create' => env('BTN_VA_PATH_CREATE', '/snap/v1.0/transfer-va/create-va'),
-            'update' => env('BTN_VA_PATH_UPDATE', '/snap/v1.0/transfer-va/update-va'),
-            'inquiry' => env('BTN_VA_PATH_INQUIRY', '/snap/v1.0/transfer-va/inquiry-va'),
-            'status' => env('BTN_VA_PATH_STATUS', '/snap/v1.0/transfer-va/inquiry-status'),
-            'delete' => env('BTN_VA_PATH_DELETE', '/snap/v1.0/transfer-va/delete-va'),
-            'report' => env('BTN_VA_PATH_REPORT', '/snap/v1.0/transfer-va/report'),
+            'token' => trim((string) env('URL_URL_VANTB_TOKEN', '')),
+            'va' => trim((string) env('URL_URL_VANTB_VA', '')),
+            'updateva' => trim((string) env('URL_URL_VANTB_UPDATEVA', '')),
+            'inqva' => trim((string) env('URL_URL_VANTB_INQVA', '')),
+            'flag' => trim((string) env('URL_URL_VANTB_FLAG', '')),
+            'cekstatus' => trim((string) env('URL_URL_VANTB_CEKSTATUS', '')),
+            'testbayar' => trim((string) env('URL_URL_VANTB_TESTBAYAR', '')),
+            'callback' => trim((string) env('CALLBACK_VANTB', '')),
+        ],
+    ],
+    'btn' => [
+        'provider' => 'btnva',
+        'production' => (bool) env('BTN_VA_PRODUCTION', false),
+        'base_url' => rtrim(trim((string) env('BTN_VA_BASE_URL', 'https://devapi.btn.co.id')), '/'),
+        'timeout_seconds' => (int) env('BTN_VA_TIMEOUT_SECONDS', 30),
+        'origin' => trim((string) env('BTN_VA_ORIGIN', '')),
+        'default_expired_days' => (int) env('BTN_VA_DEFAULT_EXPIRED_DAYS', 7),
+        'credentials' => [
+            'oauth_id' => trim((string) env('BTN_VA_CLIENT_KEY', '')),
+            'apikey_id' => trim((string) env('BTN_VA_PARTNER_ID', env('BTN_VA_CLIENT_ID', ''))),
+            'apikey_secret' => trim((string) env('BTN_VA_CLIENT_SECRET', '')),
+            'private_rsa_key_base64' => trim((string) env('BTN_VA_PRIVATE_RSA_KEY_BASE64', '')),
+            'partner_service_id' => trim((string) env('BTN_VA_PARTNER_SERVICE_ID', '')),
+            'channel_id' => trim((string) env('BTN_VA_CHANNEL_ID', '')),
+            'current_account_no' => trim((string) env('BTN_VA_CURRENT_ACCOUNT_NO', '')),
+        ],
+        'endpoints' => [
+            'token' => '/snap/v1/access-token/b2b',
+            'create' => '/snap/v1/transfer-va/create-va',
+            'update' => '/snap/v1/transfer-va/update-va',
+            'inquiry' => '/snap/v1/transfer-va/inquiry-va',
+            'status' => '/snap/v1/transfer-va/status',
+            'delete' => '/snap/v1/transfer-va/delete-va',
+            'report' => '/snap/v1/transfer-va/report',
         ],
     ],
 ];

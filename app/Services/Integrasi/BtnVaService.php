@@ -65,10 +65,8 @@ class BtnVaService
             return $this->failure('Terjadi kesalahan OpenSSL pada BTNVA: ' . $e->getMessage(), 500);
         }
 
-        // X-CLIENT-KEY = client key portal (BTN_VA_CLIENT_KEY); fallback ke oauth_id bila kosong
-        $clientKeyHeader = $this->credential('client_key') !== '' ? $this->credential('client_key') : $this->credential('oauth_id');
         $headers = [
-            'X-CLIENT-KEY' => $clientKeyHeader,
+            'X-CLIENT-KEY' => $this->credential('oauth_id'),
             'X-TIMESTAMP' => $timestamp,
             'X-SIGNATURE' => base64_encode($signature),
         ];
