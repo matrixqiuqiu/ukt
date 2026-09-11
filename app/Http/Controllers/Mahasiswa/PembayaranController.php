@@ -33,12 +33,17 @@ class PembayaranController extends Controller
         $paymentType = $request->input('payment_type', 'transfer');
 
         if ($paymentType === 'virtual_account') {
-            $validated = $request->validate([
-                'tagihan_id' => 'required|exists:tagihans,id',
-                'metode_pembayaran_id' => 'required|exists:metode_pembayarans,id',
-                'jumlah_bayar' => 'required|numeric|min:1',
-                'payment_type' => 'required|in:virtual_account',
-            ]);
+            try {
+                $validated = $request->validate([
+                    'tagihan_id' => 'required|exists:tagihans,id',
+                    'metode_pembayaran_id' => 'required|exists:metode_pembayarans,id',
+                    'jumlah_bayar' => 'required|numeric|min:1',
+                    'payment_type' => 'required|in:virtual_account',
+                ]);
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->logVaValidationFail($request, $e->errors());
+                throw $e;
+            }
 
             $tagihan = Tagihan::where('mahasiswa_id', $mahasiswa->id)
                 ->with('mahasiswa')
@@ -199,6 +204,34 @@ class PembayaranController extends Controller
 
                 return back()->withErrors(['payment' => 'Gagal mengajukan pembayaran: ' . $e->getMessage()]);
             }
+        }
+    }
+
+    /**
+     * Catat kegagalan validasi request VA ke monitoring agar terlihat
+     * JSON apa yang dikirim dan field apa yang ditolak.
+     */
+    private function logVaValidationFail(Request $request, array $errors): void
+    {
+        $isBtn = false;
+        try {
+            $m = MetodePembayaran::find($request->input('metode_pembayaran_id'));
+            $isBtn = $m && stripos($m->nama_metode, 'btn') !== false;
+        } catch (\Throwable) {
+        }
+        try {
+            \App\Models\VaApiLog::create([
+                'endpoint' => $isBtn ? 'btn-va-request' : 'va-request',
+                'success' => false,
+                'status_code' => 422,
+                'rcode' => null,
+                'message' => 'Validasi gagal: ' . collect($errors)->flatten()->implode(', '),
+                'request_data' => $request->only(['tagihan_id', 'metode_pembayaran_id', 'jumlah_bayar', 'payment_type']),
+                'response_data' => $errors,
+                'duration_ms' => 0,
+            ]);
+        } catch (\Throwable $logEx) {
+            \Illuminate\Support\Facades\Log::channel($isBtn ? 'bankbtn' : 'bankntb')->warning('Gagal simpan VaApiLog va-request: ' . $logEx->getMessage());
         }
     }
 
