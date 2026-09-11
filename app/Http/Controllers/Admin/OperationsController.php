@@ -635,10 +635,16 @@ class OperationsController extends Controller
 
     /**
      * Fetch VA transaction history for the Transaksi History tab.
+     * ?provider=btn → hanya VA BTN (metode mengandung BTN), selain itu NTB.
      */
-    public function transaksiHistory()
+    public function transaksiHistory(Request $request)
     {
+        $isBtn = $request->input('provider') === 'btn';
         $transactions = Pembayaran::whereNotNull('va_number')
+            ->when($isBtn,
+                fn ($q) => $q->whereHas('metodePembayaran', fn ($m) => $m->where('nama_metode', 'like', '%BTN%')),
+                fn ($q) => $q->where(fn ($w) => $w->whereHas('metodePembayaran', fn ($m) => $m->where('nama_metode', 'not like', '%BTN%'))->orWhereDoesntHave('metodePembayaran'))
+            )
             ->with([
                 'tagihan' => function ($q) {
                     $q->with('mahasiswa');
@@ -699,12 +705,18 @@ class OperationsController extends Controller
 
     /**
      * Monitoring transaksi data for the Monitoring tab.
+     * ?provider=btn → hanya log endpoint btn-*, selain itu log NTB.
      */
-    public function monitoring()
+    public function monitoring(Request $request)
     {
         $since = now()->subHours(24);
+        $isBtn = $request->input('provider') === 'btn';
 
-        $logs = VaApiLog::where('created_at', '>=', $since)->get();
+        $logs = VaApiLog::where('created_at', '>=', $since)
+            ->when($isBtn,
+                fn ($q) => $q->where('endpoint', 'like', 'btn-%'),
+                fn ($q) => $q->where('endpoint', 'not like', 'btn-%')
+            )->get();
 
         $total = $logs->count();
         $success = $logs->where('success', true)->count();
@@ -722,7 +734,11 @@ class OperationsController extends Controller
             ])
             ->values();
 
-        $recentLogs = VaApiLog::latest()->take(20)->get()->map(fn ($log) => [
+        $recentLogs = VaApiLog::latest()
+            ->when($isBtn,
+                fn ($q) => $q->where('endpoint', 'like', 'btn-%'),
+                fn ($q) => $q->where('endpoint', 'not like', 'btn-%')
+            )->take(20)->get()->map(fn ($log) => [
             'id' => $log->id,
             'waktu' => $log->created_at->format('d/m/Y, H.i'),
             'endpoint' => $log->endpoint,

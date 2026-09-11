@@ -50,6 +50,16 @@ watch(activeMainTab, (val) => {
   }
 });
 
+// Re-fetch saat ganti provider (NTB/BTN) di tab history & monitoring
+watch(activeProvider, () => {
+  if (activeMainTab.value === 'history') {
+    fetchTransaksiHistory();
+  }
+  if (activeMainTab.value === 'monitoring') {
+    fetchMonitoring();
+  }
+});
+
 // Transaction history state
 const vaTransactions = ref(props.vaTransactions);
 const historySubTab = ref('ukt');
@@ -71,7 +81,7 @@ const showClearLogsModal = ref(false);
 async function fetchMonitoring() {
   loadingMonitoring.value = true;
   try {
-    const resp = await axios.get(route('admin.operations.monitoring'));
+    const resp = await axios.get(route('admin.operations.monitoring'), { params: { provider: activeProvider.value } });
     monitoring.value = resp.data;
   } catch (e) {
     toastError('Gagal memuat data monitoring');
@@ -98,7 +108,7 @@ async function openTransactionDetail(logId) {
 async function fetchTransaksiHistory() {
   loadingHistory.value = true;
   try {
-    const resp = await axios.get(route('admin.operations.transaksi-history'));
+    const resp = await axios.get(route('admin.operations.transaksi-history'), { params: { provider: activeProvider.value } });
     vaTransactions.value = resp.data;
   } catch (e) {
     toastError('Gagal memuat transaksi history');
@@ -1562,7 +1572,7 @@ function buildEndpointParams(key) {
   font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
   color: #1e293b;
   max-height: 160px;
-  max-width: 420px;
+  max-width: 620px;
   overflow: auto;
   margin: 0;
   line-height: 1.4;
